@@ -9,6 +9,7 @@ let currentGoals = {
     longTerm: [],
     shortTerm: []
 };
+let activeTab = null;
 
 // DOM Elements
 const clientNameInput = document.getElementById('clientName');
@@ -19,6 +20,7 @@ const durationInput = document.getElementById('duration');
 const languageSelect = document.getElementById('language');
 const goalSearchInput = document.getElementById('goalSearch');
 const goalsListElement = document.getElementById('goalsList');
+const goalsTabsElement = document.getElementById('goalsTabs');
 const previewDocument = document.getElementById('previewDocument');
 const saveAsPdfButton = document.getElementById('saveAsPdf');
 const saveAsDocButton = document.getElementById('saveAsDoc');
@@ -33,6 +35,48 @@ async function initializeTensorflow() {
         console.error('Error loading USE model:', error);
         // Fall back to text-based search only
         useModel = null;
+    }
+}
+
+// Function to update tabs based on selected categories
+function updateTabs() {
+    if (!goalsTabsElement) return;
+    
+    goalsTabsElement.innerHTML = '';
+    const categories = Array.from(selectedCategories);
+    
+    // If no categories selected, clear tabs and show all goals
+    if (categories.length === 0) {
+        activeTab = null;
+        updateGoalsList();
+        return;
+    }
+
+    // Create tabs for each selected category
+    categories.forEach(category => {
+        const tab = document.createElement('button');
+        tab.className = `goals-tab ${activeTab === category ? 'active' : ''}`;
+        tab.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+        tab.dataset.category = category;
+        
+        tab.addEventListener('click', () => {
+            // Update active tab
+            document.querySelectorAll('.goals-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            activeTab = category;
+            updateGoalsList();
+        });
+        
+        goalsTabsElement.appendChild(tab);
+    });
+
+    // If no active tab or active tab was unselected, select first tab
+    if (!activeTab || !selectedCategories.has(activeTab)) {
+        activeTab = categories[0];
+        const firstTab = goalsTabsElement.querySelector('.goals-tab');
+        if (firstTab) {
+            firstTab.classList.add('active');
+        }
     }
 }
 
@@ -306,6 +350,7 @@ function initializeEventListeners() {
                     currentGoals.longTerm.splice(index, 1);
                 }
             }
+            updateTabs();
             await updateGoalsList();
             updatePreview();
         });
@@ -334,7 +379,12 @@ function initializeEventListeners() {
 async function updateGoalsList() {
     try {
         const query = goalSearchInput.value;
-        const categories = Array.from(selectedCategories);
+        let categories = Array.from(selectedCategories);
+        
+        // If there's an active tab, only show goals for that category
+        if (activeTab) {
+            categories = [activeTab];
+        }
         
         let goals;
         if (useModel && query) {
