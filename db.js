@@ -295,6 +295,6 @@ class GoalDatabase {
     }
 }
 
-// Export database instance
+// Create and export database instance
 const goalDB = new GoalDatabase();
-window.goalDB = goalDB;
+export default goalDB;

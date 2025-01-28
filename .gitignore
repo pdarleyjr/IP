@@ -25,6 +25,9 @@ Samples/
 dist/
 build/
 
+# Installers
+*.exe
+
 # Logs
 *.log
 npm-debug.log*

@@ -1,3 +1,6 @@
+// Import dependencies
+import goalDB from '/db.js';
+
 // Global state
 let useModel = null;
 let selectedCategories = new Set();
@@ -32,14 +35,45 @@ async function initializeTensorflow() {
     }
 }
 
-// Generate treatment plan summary using Universal Sentence Encoder
+// Helper function to validate required inputs
+function validateInputs() {
+    const requiredInputs = {
+        'Client Name': clientNameInput.value,
+        'Frequency': frequencyInput.value,
+        'Duration': durationInput.value,
+        'Language': languageSelect.value
+    };
+
+    const missing = Object.entries(requiredInputs)
+        .filter(([_, value]) => !value)
+        .map(([name]) => name);
+
+    if (missing.length > 0) {
+        throw new Error(`Please fill in the following required fields: ${missing.join(', ')}`);
+    }
+
+    if (selectedCategories.size === 0) {
+        throw new Error('Please select at least one goal category');
+    }
+
+    if (currentGoals.shortTerm.length === 0) {
+        throw new Error('Please select at least one short-term objective');
+    }
+}
+
+// Helper function to capitalize first letter of each word
+function capitalizeWords(str) {
+    return str.split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
+// Generate summary using enhanced hybrid approach
 async function generatePlanSummary() {
     try {
-        if (!useModel) {
-            throw new Error('Universal Sentence Encoder not loaded');
-        }
+        // Validate inputs first
+        validateInputs();
 
-        // Collect all selected goals and categories
         const selectedCats = Array.from(selectedCategories);
         const allGoals = [...currentGoals.longTerm, ...currentGoals.shortTerm];
         const clientName = clientNameInput.value;
@@ -47,20 +81,149 @@ async function generatePlanSummary() {
         const duration = durationInput.value;
         const language = languageSelect.value;
 
-        // Create a summary by extracting key information
-        const summary = `${clientName}'s speech therapy plan focuses on ${selectedCats.join(', ')}. ` +
-            `Sessions will be conducted ${frequency} times per week for ${duration} minutes in ${language}. ` +
-            `The plan includes ${allGoals.length} specific goals targeting these areas.`;
+        // Rule-based analysis of goals
+        const goalsByCategory = {};
+        selectedCats.forEach(category => {
+            goalsByCategory[category] = allGoals.filter(g => g.category === category);
+        });
 
-        // Update UI
-        const summarySection = document.getElementById('planSummary');
-        const summaryText = document.getElementById('summaryText');
-        summaryText.textContent = summary;
-        summarySection.style.display = 'block';
+        // Generate category-specific insights
+        const categoryInsights = [];
+        for (const [category, goals] of Object.entries(goalsByCategory)) {
+            if (goals.length > 0) {
+                const capitalizedCategory = capitalizeWords(category);
+                const insight = `For ${capitalizedCategory}, the plan includes ${goals.length} specific objectives targeting key areas of development`;
+                categoryInsights.push(insight);
+            }
+        }
+
+        // Use semantic analysis if USE model is available
+        let semanticInsights = [];
+        if (useModel) {
+            try {
+                // Get embeddings for all goals
+                const goalTexts = allGoals.map(g => g.text);
+                const embeddings = await useModel.embed(goalTexts);
+                
+                // Enhanced semantic analysis
+                const embeddingArray = await embeddings.array();
+                const similarities = [];
+                const relatedGoals = [];
+                
+                for (let i = 0; i < embeddingArray.length; i++) {
+                    for (let j = i + 1; j < embeddingArray.length; j++) {
+                        const similarity = tf.tensor1d(embeddingArray[i])
+                            .dot(tf.tensor1d(embeddingArray[j]))
+                            .dataSync()[0];
+                        similarities.push(similarity);
+                        
+                        if (similarity > 0.8) {
+                            relatedGoals.push([allGoals[i].category, allGoals[j].category]);
+                        }
+                    }
+                }
+
+                // Generate insights about goal relationships
+                if (relatedGoals.length > 0) {
+                    const uniquePairs = new Set(relatedGoals.map(pair => pair.sort().join('-')));
+                    uniquePairs.forEach(pair => {
+                        const [cat1, cat2] = pair.split('-');
+                        const capitalizedCat1 = capitalizeWords(cat1);
+                        const capitalizedCat2 = capitalizeWords(cat2);
+                        if (cat1 !== cat2) {
+                            semanticInsights.push(`The plan integrates complementary goals between ${capitalizedCat1} and ${capitalizedCat2}`);
+                        }
+                    });
+                }
+
+                // Cleanup tensors
+                embeddings.dispose();
+            } catch (error) {
+                console.error('Error in semantic analysis:', error);
+            }
+        }
+
+        // Progress monitoring statement with semantic variation
+        const progressStatements = [
+            "Formal and informal measures will be utilized throughout intervention to establish goals and monitor progress.",
+            "Progress will be tracked through a combination of formal assessments and informal observations during therapy sessions.",
+            "Ongoing evaluation using both standardized measures and clinical observations will guide goal adjustment and progress monitoring.",
+            "Treatment progress will be assessed through systematic data collection and periodic formal evaluations."
+        ];
+
+        // Use USE model to select most appropriate progress statement if available
+        let progressStatement = progressStatements[0];
+        if (useModel) {
+            try {
+                const embeddings = await useModel.embed(progressStatements);
+                const contextEmbed = await useModel.embed([categoryInsights.join(' ')]);
+                
+                const similarities = await Promise.all(progressStatements.map(async (_, i) => {
+                    const similarity = tf.tensor1d((await embeddings.array())[i])
+                        .dot(tf.tensor1d((await contextEmbed.array())[0]))
+                        .dataSync()[0];
+                    return similarity;
+                }));
+
+                const bestIndex = similarities.indexOf(Math.max(...similarities));
+                progressStatement = progressStatements[bestIndex];
+
+                embeddings.dispose();
+                contextEmbed.dispose();
+            } catch (error) {
+                console.error('Error selecting progress statement:', error);
+            }
+        }
+
+        // Combine insights into structured summary
+        const summaryParts = [
+            `Treatment Summary for ${clientName}:`,
+            `\nIntervention Plan:`,
+            `• Speech therapy services will be provided ${frequency} times per week for ${duration} minutes.`,
+            `• Sessions will be conducted in ${language}.`,
+            `\nPrimary Focus Areas:`,
+            `• ${selectedCats.map(cat => capitalizeWords(cat)).join('\n• ')}`,
+            `\nTreatment Approach:`,
+            categoryInsights.map(insight => `• ${insight}.`).join('\n'),
+            semanticInsights.length > 0 ? `\nIntegrated Approach:` : '',
+            semanticInsights.map(insight => `• ${insight}.`).join('\n'),
+            `\nProgress Monitoring:`,
+            `• ${progressStatement}`
+        ];
+
+        const summary = summaryParts.filter(Boolean).join('\n');
+
+        // Update UI with summary
+        updatePreviewWithSummary(summary);
     } catch (error) {
         console.error('Error generating summary:', error);
-        alert('Failed to generate summary. Please try again.');
+        alert(error.message || 'Failed to generate summary. Please try again.');
     }
+}
+
+// Helper function to update preview with summary
+function updatePreviewWithSummary(summary) {
+    const container = document.querySelector('.preview-content-container');
+    if (!container) return;
+
+    // Remove existing summary if present
+    const existingSummary = document.getElementById('planSummary');
+    if (existingSummary) {
+        existingSummary.remove();
+    }
+
+    // Create new summary section
+    const summarySection = document.createElement('div');
+    summarySection.id = 'planSummary';
+    summarySection.className = 'preview-section';
+    summarySection.style.display = 'block';
+    summarySection.innerHTML = `
+        <h3>Plan Summary</h3>
+        <p id="summaryText" style="white-space: pre-line;">${summary}</p>
+    `;
+
+    // Add to the end of the container
+    container.appendChild(summarySection);
 }
 
 // Load goals from JSON file into IndexedDB
@@ -316,16 +479,12 @@ function updatePreview() {
                     ${currentGoals.shortTerm.map(goal => `<li>${goal.text}</li>`).join('\n')}
                 </ul>
             `
-        },
-        {
-            title: null,
-            content: `
-                <div class="preview-section">
-                    <p>Intervention will be provided in ${language}.</p>
-                </div>
-            `
         }
     ];
+
+    // Store existing summary if it exists
+    const existingSummary = document.getElementById('planSummary');
+    const existingSummaryText = existingSummary ? existingSummary.querySelector('#summaryText').textContent : '';
 
     // Clear existing content
     previewDocument.innerHTML = '';
@@ -359,6 +518,11 @@ function updatePreview() {
         currentContainer.insertAdjacentHTML('beforeend', sectionContent);
         itemsOnCurrentPage += listItemCount;
     });
+
+    // Restore summary if it existed
+    if (existingSummaryText) {
+        updatePreviewWithSummary(existingSummaryText);
+    }
 }
 
 // Export functions
