@@ -61,26 +61,21 @@ body {
 }
 
 .data-entry {
-    flex: 0 0 50%;
+    flex: 1 1 50%;
     padding: var(--spacing-lg);
     background: #f8f9fa;
-}
-
-.preview {
-    flex: 1;
     display: flex;
     flex-direction: column;
-    background: #f8f9fa;
 }
 
 /* Logo Styling */
 .logo-container {
     text-align: center;
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
 }
 
 .logo {
-    max-width: 180px;
+    max-width: 300px;
     height: auto;
 }
 
@@ -276,8 +271,7 @@ select:hover {
 }
 
 .preview {
-    flex: 0 0 50%;
-    height: calc(100vh - 2 * var(--spacing-lg));
+    flex: 1 1 50%;
     min-width: 500px;
     display: flex;
     flex-direction: column;
@@ -290,6 +284,7 @@ select:hover {
     background: #f8f9fa;
     overflow-y: auto;
     width: 100%;
+    flex: 1 1 auto;
 }
 
 .preview-content > * {
