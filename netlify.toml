@@ -1,0 +1,9 @@
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Content-Type = "text/javascript"
+
+[[headers]]
+  for = "/IPLC-IP/*.js"
+  [headers.values]
+    Content-Type = "text/javascript"
