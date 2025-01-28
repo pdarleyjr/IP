@@ -1,0 +1,30 @@
+Based on the IPLC logo you've shown, with its vibrant and diverse color palette, I recommend a color scheme that captures the modern and professional aesthetic you're aiming for in your easy!appointments scheduler. Here’s a breakdown that you might find effective:
+
+    Primary Color: Deep blue, as seen in the globe’s base color. This can be used for primary buttons, headers, and active elements.
+        Hex: #003366
+
+    Secondary Colors:
+        Sky Blue: For secondary buttons and highlights.
+            Hex: #0073e6
+        Lime Green: Useful for accents like notifications or active statuses.
+            Hex: #8CC63F
+
+    Accent Colors (used sparingly to draw attention to key elements):
+        Orange: To highlight important actions or warnings.
+            Hex: #FFA500
+        Yellow: For tooltips or small accents that require attention.
+            Hex: #FFD700
+
+    Background Colors:
+        Light Grey: Keeps the background neutral and professional, ensuring the colorful logo and elements stand out without overwhelming the user interface.
+            Hex: #F0F0F0
+        White: For cards or content areas to maintain clarity and readability.
+            Hex: #FFFFFF
+
+    Text Colors:
+        Dark Grey (for primary text): Provides better readability than pure black and is less stark against light backgrounds.
+            Hex: #333333
+        Blue (for links or clickable items): Matches the primary color but can be a lighter shade to stand out against dark backgrounds.
+            Hex: #0057B8
+
+This color scheme should provide a clean, modern look while also being versatile enough to create a visually appealing interface that aligns with the IPLC brand and ethos of "Learning without boundaries." Make sure to use these colors consistently across your UI to maintain a professional appearance.

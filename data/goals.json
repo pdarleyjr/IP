@@ -1,0 +1,862 @@
+[
+  {
+    "category": "articulation",
+    "text": "Articulation goals"
+  },
+  {
+    "category": "articulation",
+    "text": "will decrease tongue protrusion."
+  },
+  {
+    "category": "articulation",
+    "text": "will improve labial seal at rest."
+  },
+  {
+    "category": "articulation",
+    "text": "will properly articulate lingual alveolar sounds (/t, d, n/) by decreasing tongue protrusion."
+  },
+  {
+    "category": "articulation",
+    "text": "will decrease final consonant deletion in conversation."
+  },
+  {
+    "category": "articulation",
+    "text": "will decrease velar assimilation by producing CVC words."
+  },
+  {
+    "category": "articulation",
+    "text": "will increase intelligibility while producing 3–4-word utterances."
+  },
+  {
+    "category": "articulation",
+    "text": "will increase intelligibility in conversation."
+  },
+  {
+    "category": "articulation",
+    "text": "will request and answer questions with increased intelligibility."
+  },
+  {
+    "category": "articulation",
+    "text": "will say a story with increased intelligibility."
+  },
+  {
+    "category": "articulation",
+    "text": "will increase overall intelligibility in conversation."
+  },
+  {
+    "category": "articulation",
+    "text": "Will auditorily discriminate …"
+  },
+  {
+    "category": "articulation",
+    "text": "Will label common nouns with increased intelligibility."
+  },
+  {
+    "category": "articulation",
+    "text": "will label common actions with increased intelligibility."
+  },
+  {
+    "category": "articulation",
+    "text": "will say a story with increased articulatory precision."
+  },
+  {
+    "category": "articulation",
+    "text": "will increase overall articulatory precision in conversation."
+  },
+  {
+    "category": "articulation",
+    "text": "Apraxia"
+  },
+  {
+    "category": "articulation",
+    "text": "will imitate facial movements."
+  },
+  {
+    "category": "articulation",
+    "text": "will imitate environmental sounds."
+  },
+  {
+    "category": "articulation",
+    "text": "will request using sounds/word approximations."
+  },
+  {
+    "category": "articulation",
+    "text": "will increase vocalizations."
+  },
+  {
+    "category": "articulation",
+    "text": "will produce vowel sounds."
+  },
+  {
+    "category": "articulation",
+    "text": "will imitate reduplicated babble."
+  },
+  {
+    "category": "articulation",
+    "text": "will produce a variety of C-V word combinations."
+  },
+  {
+    "category": "articulation",
+    "text": "will produce a variety of V-C word combinations."
+  },
+  {
+    "category": "articulation",
+    "text": "will produce a variety of C-V-C word combinations."
+  },
+  {
+    "category": "attention",
+    "text": "will consistently respond to his name."
+  },
+  {
+    "category": "attention",
+    "text": "Will participate in a turn taking activity with clinician"
+  },
+  {
+    "category": "attention",
+    "text": "Will attend to an adult directed task"
+  },
+  {
+    "category": "attention",
+    "text": "Will attend to a non preferred adult directed task"
+  },
+  {
+    "category": "attention",
+    "text": "Will attend to a book"
+  },
+  {
+    "category": "attention",
+    "text": "Will attend to a look and find book"
+  },
+  {
+    "category": "attention",
+    "text": "Will sort items by color"
+  },
+  {
+    "category": "attention",
+    "text": "Will sort items by categories"
+  },
+  {
+    "category": "attention",
+    "text": "Will engage with clinician while playing with a toy"
+  },
+  {
+    "category": "attention",
+    "text": "Will copy a pattern"
+  },
+  {
+    "category": "attention",
+    "text": "Will complete a pattern"
+  },
+  {
+    "category": "attention",
+    "text": "will increase attention to adult directed tasks by increasing eye contact five times in a thirty-minute session."
+  },
+  {
+    "category": "attention",
+    "text": "Will sequence picture scenes"
+  },
+  {
+    "category": "attention",
+    "text": "will improve attention and auditory memory by completing auditory memory exercises on Hearbuilder."
+  },
+  {
+    "category": "attention",
+    "text": "will increase topic maintenance in conversation."
+  },
+  {
+    "category": "attention",
+    "text": "​​will list 10 items when given a category."
+  },
+  {
+    "category": "attention",
+    "text": "will sequence picture scenes."
+  },
+  {
+    "category": "attention",
+    "text": "will complete rapid naming tasks."
+  },
+  {
+    "category": "attention",
+    "text": "will recall sentences."
+  },
+  {
+    "category": "attention",
+    "text": "will answer various wh-questions after a story."
+  },
+  {
+    "category": "attention",
+    "text": "will retell a story."
+  },
+  {
+    "category": "attention",
+    "text": "will complete age-appropriate following directions handouts."
+  },
+  {
+    "category": "attention",
+    "text": "will listen and follow 2-step directions."
+  },
+  {
+    "category": "attention",
+    "text": "will listen and follow complex directions."
+  },
+  {
+    "category": "attention",
+    "text": "will complete tasks to improve working memory."
+  },
+  {
+    "category": "attention",
+    "text": "will respond to “how” questions by providing steps to complete everyday tasks."
+  },
+  {
+    "category": "attention",
+    "text": "will follow directions in structured play."
+  },
+  {
+    "category": "attention",
+    "text": "will follow directions using basic motor actions."
+  },
+  {
+    "category": "attention",
+    "text": "Will follow basic action directions"
+  },
+  {
+    "category": "attention",
+    "text": "Will follow complex action directions"
+  },
+  {
+    "category": "attention",
+    "text": "Will follow basic one step directions"
+  },
+  {
+    "category": "attention",
+    "text": "Will follow complex one step directions"
+  },
+  {
+    "category": "attention",
+    "text": "Will follow basic two step directions"
+  },
+  {
+    "category": "attention",
+    "text": "Will follow complex 2 step directions"
+  },
+  {
+    "category": "attention",
+    "text": "Will follow basic directions identifying object function"
+  },
+  {
+    "category": "attention",
+    "text": "will follow 2-step directions using object function."
+  },
+  {
+    "category": "attention",
+    "text": "Will follow directions using spatial concepts"
+  },
+  {
+    "category": "attention",
+    "text": "Will following directions using basic concepts"
+  },
+  {
+    "category": "attention",
+    "text": "​​will follow directions using HearBuilder."
+  },
+  {
+    "category": "attention",
+    "text": "will complete age-appropriate following directions handouts."
+  },
+  {
+    "category": "attention",
+    "text": "will listen and follow 2-step directions."
+  },
+  {
+    "category": "attention",
+    "text": "will listen and follow complex directions."
+  },
+  {
+    "category": "attention",
+    "text": "Will name 5-10 items when given a category"
+  },
+  {
+    "category": "attention",
+    "text": "Will complete rapid naming tasks"
+  },
+  {
+    "category": "attention",
+    "text": "will complete auditory closure exercises by providing a word to complete a sentence."
+  },
+  {
+    "category": "attention",
+    "text": "will improve auditory memory by completing auditory memory exercises on Hearbuilder."
+  },
+  {
+    "category": "attention",
+    "text": "will name various synonyms and antonyms to words."
+  },
+  {
+    "category": "attention",
+    "text": "will complete tasks to improve working memory"
+  },
+  {
+    "category": "attention",
+    "text": "​​will recall sentences."
+  },
+  {
+    "category": "attention",
+    "text": "will answer various wh-questions after a story."
+  },
+  {
+    "category": "attention",
+    "text": "will retell a story."
+  },
+  {
+    "category": "attention",
+    "text": "Serial recall"
+  },
+  {
+    "category": "attention",
+    "text": "Identify what comes before versus after"
+  },
+  {
+    "category": "attention",
+    "text": "Unscramble words"
+  },
+  {
+    "category": "attention",
+    "text": "Sort items by category"
+  },
+  {
+    "category": "executive",
+    "text": "Will sequence picture scenes"
+  },
+  {
+    "category": "executive",
+    "text": "Will make inferences"
+  },
+  {
+    "category": "executive",
+    "text": "Will improve inference skills"
+  },
+  {
+    "category": "executive",
+    "text": "will respond to “how” questions by providing steps to complete everyday tasks."
+  },
+  {
+    "category": "executive",
+    "text": "​​will prioritize items from most important to least important."
+  },
+  {
+    "category": "executive",
+    "text": "will organize thoughts and ideas when recalling past events."
+  },
+  {
+    "category": "executive",
+    "text": "will retell a story giving key details."
+  },
+  {
+    "category": "expressive",
+    "text": "Will increase eye contact while requesting"
+  },
+  {
+    "category": "expressive",
+    "text": "Will improve overall joint attention"
+  },
+  {
+    "category": "expressive",
+    "text": "will imitate environmental sounds."
+  },
+  {
+    "category": "expressive",
+    "text": "Will increase environmental sounds"
+  },
+  {
+    "category": "expressive",
+    "text": "will increase vocalizations."
+  },
+  {
+    "category": "expressive",
+    "text": "Will increase spontaneous language"
+  },
+  {
+    "category": "expressive",
+    "text": "Will participate in a turn taking activity while labeling  “my turn”/”your turn”"
+  },
+  {
+    "category": "expressive",
+    "text": "Will answer basic yes/no questions"
+  },
+  {
+    "category": "expressive",
+    "text": "Will answer functional yes/no questions"
+  },
+  {
+    "category": "expressive",
+    "text": "Will label common objects"
+  },
+  {
+    "category": "expressive",
+    "text": "Will label common verbs"
+  },
+  {
+    "category": "expressive",
+    "text": "Will label body parts"
+  },
+  {
+    "category": "expressive",
+    "text": "will request using sounds/word approximations."
+  },
+  {
+    "category": "expressive",
+    "text": "will use gestures and/or words to request “more”, “give me”, “open”, and “all done”."
+  },
+  {
+    "category": "expressive",
+    "text": "Will request using words paired with gestures"
+  },
+  {
+    "category": "expressive",
+    "text": "Will request using 1-2 words"
+  },
+  {
+    "category": "expressive",
+    "text": "Will request using 2-3 words"
+  },
+  {
+    "category": "expressive",
+    "text": "Will answer what questions"
+  },
+  {
+    "category": "expressive",
+    "text": "will request for help."
+  },
+  {
+    "category": "expressive",
+    "text": "will use 2-3 words to request (“I want ___”, “open__”, “give me___”, “more___”, etc)"
+  },
+  {
+    "category": "expressive",
+    "text": "will formulate age-appropriate utterances to describe a picture scene."
+  },
+  {
+    "category": "expressive",
+    "text": "will consistently use 4–5-word sentences to request."
+  },
+  {
+    "category": "expressive",
+    "text": "will name an object being described."
+  },
+  {
+    "category": "expressive",
+    "text": "will describe an object using age appropriate, grammatically correct sentences."
+  },
+  {
+    "category": "expressive",
+    "text": "Will label pronouns (he/she/they)"
+  },
+  {
+    "category": "expressive",
+    "text": "Will answer what questions without a visual"
+  },
+  {
+    "category": "expressive",
+    "text": "Will answer where questions without a visual"
+  },
+  {
+    "category": "expressive",
+    "text": "Will answer who questions without a visual"
+  },
+  {
+    "category": "expressive",
+    "text": "Will answer when questions without a visual"
+  },
+  {
+    "category": "expressive",
+    "text": "Will answer why questions without a visual"
+  },
+  {
+    "category": "expressive",
+    "text": "Will answer various wh-questions without a visual"
+  },
+  {
+    "category": "expressive",
+    "text": "will answer mixed what and where questions."
+  },
+  {
+    "category": "expressive",
+    "text": "will request using 3-4 word utterances."
+  },
+  {
+    "category": "expressive",
+    "text": "will use 4-5 word utterances with increased intelligibility."
+  },
+  {
+    "category": "expressive",
+    "text": "will be able to answer how questions."
+  },
+  {
+    "category": "expressive",
+    "text": "will be able to retell a story."
+  },
+  {
+    "category": "expressive",
+    "text": "will verbally express a narrative."
+  },
+  {
+    "category": "expressive",
+    "text": "will increase vocabulary in conversation."
+  },
+  {
+    "category": "expressive",
+    "text": "will increase mean length utterance (MLU)."
+  },
+  {
+    "category": "expressive",
+    "text": "will improve story telling."
+  },
+  {
+    "category": "expressive",
+    "text": "will describe a picture scene using 4-5 word utterances."
+  },
+  {
+    "category": "expressive",
+    "text": "will describe a picture scene using 5-6 word utterances."
+  },
+  {
+    "category": "expressive",
+    "text": "will describe an object while expanding utterance length."
+  },
+  {
+    "category": "expressive",
+    "text": "will repeat age-appropriate sentences."
+  },
+  {
+    "category": "expressive",
+    "text": "will formulate an age-appropriate sentence when given a word."
+  },
+  {
+    "category": "expressive",
+    "text": "will define a word."
+  },
+  {
+    "category": "expressive",
+    "text": "will formulate an expressive narrative to describe pictures in sequential order."
+  },
+  {
+    "category": "expressive",
+    "text": "will formulate age-appropriate, grammatically correct, utterances to answer various ‘wh’ questions."
+  },
+  {
+    "category": "expressive",
+    "text": "​​will answer various “wh” questions throughout the session in structured and unstructured conversation."
+  },
+  {
+    "category": "expressive",
+    "text": "Will identify pronouns (he/she/they)"
+  },
+  {
+    "category": "expressive",
+    "text": "Will label pronouns (he/she/they)"
+  },
+  {
+    "category": "expressive",
+    "text": "Will use plurals"
+  },
+  {
+    "category": "expressive",
+    "text": "will complete various grammatical activities."
+  },
+  {
+    "category": "expressive",
+    "text": "will verbally express age appropriate grammatically correct sentences."
+  },
+  {
+    "category": "expressive",
+    "text": "will increase grammar skills (possessive nouns, irregular past tense verbs, pronouns)."
+  },
+  {
+    "category": "expressive",
+    "text": "will properly use irregular verbs in a sentence."
+  },
+  {
+    "category": "expressive",
+    "text": "will formulate an age-appropriate grammatically correct sentence when given a word."
+  },
+  {
+    "category": "expressive",
+    "text": "will increase grammar skills in conversation."
+  },
+  {
+    "category": "expressive",
+    "text": "will formulate age-appropriate, grammatically correct, utterances to answer various ‘wh’ questions."
+  },
+  {
+    "category": "expressive",
+    "text": "will improve grammar skills by completing exercises on:"
+  },
+  {
+    "category": "expressive",
+    "text": "Regular plurals"
+  },
+  {
+    "category": "expressive",
+    "text": "Regular past tense verbs"
+  },
+  {
+    "category": "expressive",
+    "text": "Future tense verbs"
+  },
+  {
+    "category": "expressive",
+    "text": "Pronouns"
+  },
+  {
+    "category": "expressive",
+    "text": "Irregular plurals"
+  },
+  {
+    "category": "expressive",
+    "text": "Irregular past tense verbs"
+  },
+  {
+    "category": "fluency",
+    "text": "Will auditorily discriminate between “smooth” and “bumpy” speech."
+  },
+  {
+    "category": "fluency",
+    "text": "will identify clinician disfluencies independently."
+  },
+  {
+    "category": "fluency",
+    "text": "Will use slow speech to decrease disfluencies"
+  },
+  {
+    "category": "fluency",
+    "text": "Will use light contact to decrease disfluencies"
+  },
+  {
+    "category": "fluency",
+    "text": "Will use easy onset to decrease disfluencies"
+  },
+  {
+    "category": "pragmatic",
+    "text": "will understand feelings by using nonverbal and verbal language."
+  },
+  {
+    "category": "pragmatic",
+    "text": "will improve social skills by improving social thinking."
+  },
+  {
+    "category": "pragmatic",
+    "text": "will identify a problem and provide a solution when given a social scenario."
+  },
+  {
+    "category": "pragmatic",
+    "text": "will label expected versus unexpected behaviors when given a social scenario."
+  },
+  {
+    "category": "pragmatic",
+    "text": "will identify real life situations versus make believe."
+  },
+  {
+    "category": "receptive",
+    "text": "Will imitate actions with a toy"
+  },
+  {
+    "category": "receptive",
+    "text": "will imitate basic motor actions."
+  },
+  {
+    "category": "receptive",
+    "text": "will improve overall play skills."
+  },
+  {
+    "category": "receptive",
+    "text": "Will answer basic yes/no questions given a visual"
+  },
+  {
+    "category": "receptive",
+    "text": "will pick an item given visual choices."
+  },
+  {
+    "category": "receptive",
+    "text": "will identify body parts"
+  },
+  {
+    "category": "receptive",
+    "text": "Will identify common objects"
+  },
+  {
+    "category": "receptive",
+    "text": "Will identify common actions"
+  },
+  {
+    "category": "receptive",
+    "text": "will identify objects by their function"
+  },
+  {
+    "category": "receptive",
+    "text": "Will understand spatial concepts on/under"
+  },
+  {
+    "category": "receptive",
+    "text": "Will answer what questions given a visual"
+  },
+  {
+    "category": "receptive",
+    "text": "Will identify pronouns (he/she/they)"
+  },
+  {
+    "category": "receptive",
+    "text": "Will answer what questions given a visual"
+  },
+  {
+    "category": "receptive",
+    "text": "Will answer where questions given a visual"
+  },
+  {
+    "category": "receptive",
+    "text": "Will answer who questions given a visual"
+  },
+  {
+    "category": "receptive",
+    "text": "Will answer when questions given a visual"
+  },
+  {
+    "category": "receptive",
+    "text": "Will answer why questions given a visual"
+  },
+  {
+    "category": "receptive",
+    "text": "Will answer various wh-questions given a visual"
+  },
+  {
+    "category": "receptive",
+    "text": "will answer wh-questions post story."
+  },
+  {
+    "category": "receptive",
+    "text": "​​will understand spatial concepts (on, under, inside, behind, in front, next to)."
+  },
+  {
+    "category": "receptive",
+    "text": "will understand basic concepts (spatial, qualitative, quantitative, temporal)."
+  },
+  {
+    "category": "receptive",
+    "text": "will identify shapes."
+  },
+  {
+    "category": "receptive",
+    "text": "will follow directions in structured play."
+  },
+  {
+    "category": "receptive",
+    "text": "will follow directions using basic motor actions."
+  },
+  {
+    "category": "receptive",
+    "text": "Will follow basic action directions"
+  },
+  {
+    "category": "receptive",
+    "text": "Will follow complex action directions"
+  },
+  {
+    "category": "receptive",
+    "text": "Will follow basic one step directions"
+  },
+  {
+    "category": "receptive",
+    "text": "Will follow complex one step directions"
+  },
+  {
+    "category": "receptive",
+    "text": "Will follow basic two step directions"
+  },
+  {
+    "category": "receptive",
+    "text": "Will follow complex 2 step directions"
+  },
+  {
+    "category": "receptive",
+    "text": "Will follow basic directions identifying object function"
+  },
+  {
+    "category": "receptive",
+    "text": "will follow 2-step directions using object function."
+  },
+  {
+    "category": "receptive",
+    "text": "Will follow directions using spatial concepts"
+  },
+  {
+    "category": "receptive",
+    "text": "Will following directions using basic concepts"
+  },
+  {
+    "category": "receptive",
+    "text": "​​will follow directions using HearBuilder."
+  },
+  {
+    "category": "receptive",
+    "text": "will complete age-appropriate following directions handouts."
+  },
+  {
+    "category": "receptive",
+    "text": "will listen and follow 2-step directions."
+  },
+  {
+    "category": "receptive",
+    "text": "will listen and follow complex directions."
+  },
+  {
+    "category": "receptive",
+    "text": "Will name 5-10 items when given a category"
+  },
+  {
+    "category": "receptive",
+    "text": "Will complete rapid naming tasks"
+  },
+  {
+    "category": "receptive",
+    "text": "will complete auditory closure exercises by providing a word to complete a sentence."
+  },
+  {
+    "category": "receptive",
+    "text": "will improve auditory memory by completing auditory memory exercises on Hearbuilder."
+  },
+  {
+    "category": "receptive",
+    "text": "will name various synonyms and antonyms to words."
+  },
+  {
+    "category": "receptive",
+    "text": "will complete tasks to improve working memory"
+  },
+  {
+    "category": "receptive",
+    "text": "​​will recall sentences."
+  },
+  {
+    "category": "receptive",
+    "text": "will answer various wh-questions after a story."
+  },
+  {
+    "category": "receptive",
+    "text": "will retell a story."
+  },
+  {
+    "category": "receptive",
+    "text": "Serial recall"
+  },
+  {
+    "category": "receptive",
+    "text": "Identify what comes before versus after"
+  },
+  {
+    "category": "receptive",
+    "text": "Unscramble words"
+  },
+  {
+    "category": "receptive",
+    "text": "Sort items by category"
+  }
+]

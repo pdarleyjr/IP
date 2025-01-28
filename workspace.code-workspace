@@ -1,0 +1,29 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.git": true,
+      "**/.DS_Store": true
+    },
+    "explorer.sortOrder": "type",
+    "files.defaultLanguage": "markdown",
+    "editor.wordWrap": "on",
+    "editor.rulers": [80],
+    "workbench.editor.enablePreview": true,
+    "search.exclude": {
+      "**/node_modules": true
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "yzhang.markdown-all-in-one",
+      "streetsidesoftware.code-spell-checker",
+      "ms-vscode.wordcount",
+      "dbaeumer.vscode-eslint"
+    ]
+  }
+}
