@@ -295,6 +295,5 @@ class GoalDatabase {
     }
 }
 
-// Create and export database instance
-const goalDB = new GoalDatabase();
-export default goalDB;
+// Create and expose database instance globally
+window.goalDB = new GoalDatabase();

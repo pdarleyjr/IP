@@ -1,5 +1,8 @@
 // Import dependencies
-import goalDB from './db.js?v=1';
+// Use the global goalDB object
+if (!window.goalDB) {
+    console.error('Database not initialized');
+}
 
 // Global state
 let useModel = null;
