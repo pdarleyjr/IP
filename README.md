@@ -12,12 +12,17 @@ A web-based tool for generating speech therapy intervention plans. This applicat
 
 ## Deployment
 
-This application is designed to be hosted on GitHub Pages. To deploy:
+This application is hosted on GitHub Pages and can be accessed at:
+https://pdarleyjr.github.io/IPLC-IP
 
-1. Push your changes to the main branch
-2. Go to your repository settings
-3. Under "GitHub Pages", select the main branch as the source
-4. The site will be available at `https://<username>.github.io/<repository>`
+The deployment is configured to use the `gh-pages` branch. The site automatically updates when changes are pushed to this branch.
+
+To deploy updates:
+1. Make changes to the code
+2. Commit and push to the main branch
+3. Switch to gh-pages branch: `git checkout gh-pages`
+4. Merge changes from main: `git merge main`
+5. Push to deploy: `git push origin gh-pages`
 
 ## Development
 
