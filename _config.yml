@@ -1,0 +1,6 @@
+include: [".well-known"]
+defaults:
+  - scope:
+      path: "**.js"
+    values:
+      content_type: "text/javascript"
