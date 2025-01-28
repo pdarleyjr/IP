@@ -450,7 +450,7 @@ function updatePreview() {
             title: null,
             content: `
                 <div class="preview-header">
-                    <img src="logo.png" alt="IPLC Logo" class="preview-logo">
+                    <img src="/IPLC-IP/logo.png" alt="IPLC Logo" class="preview-logo">
                 </div>
                 <div class="preview-section">
                     <p><strong>Name:</strong> ${clientName}</p>
