@@ -1,5 +1,6 @@
 // Import dependencies
 import goalDB from './db.js';
+import { categoryDescriptions } from './categoryDescriptions.js';
 
 // Global state
 let useModel = null;
@@ -87,12 +88,13 @@ async function generatePlanSummary() {
             goalsByCategory[category] = allGoals.filter(g => g.category === category);
         });
 
-        // Generate category-specific insights
+        // Generate category-specific insights with enhanced descriptions
         const categoryInsights = [];
         for (const [category, goals] of Object.entries(goalsByCategory)) {
             if (goals.length > 0) {
                 const capitalizedCategory = capitalizeWords(category);
-                const insight = `For ${capitalizedCategory}, the plan includes ${goals.length} specific objectives targeting key areas of development`;
+                const description = categoryDescriptions[category];
+                const insight = `For ${capitalizedCategory}, the plan includes ${goals.length} specific objectives targeting key areas of development. ${description}`;
                 categoryInsights.push(insight);
             }
         }
