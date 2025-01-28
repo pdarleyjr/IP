@@ -1,5 +1,5 @@
 // Import dependencies
-import goalDB from '/IPLC-IP/db.js';
+import goalDB from '/IPLC-IP/db.js?v=1';
 
 // Global state
 let useModel = null;
