@@ -1,8 +1,5 @@
 // Import dependencies
-// Use the global goalDB object
-if (!window.goalDB) {
-    console.error('Database not initialized');
-}
+import goalDB from './db.js';
 
 // Global state
 let useModel = null;
@@ -233,7 +230,7 @@ function updatePreviewWithSummary(summary) {
 async function loadGoalBank() {
     try {
         console.log('Fetching goals from JSON file...');
-        const response = await fetch('./data/goals.json');
+        const response = await fetch('data/goals.json');
         
         if (!response.ok) {
             throw new Error('Failed to fetch goals data');
