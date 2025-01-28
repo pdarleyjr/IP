@@ -1,5 +1,5 @@
 // Import dependencies
-import goalDB from '/db.js';
+import goalDB from '/IPLC-IP/db.js';
 
 // Global state
 let useModel = null;
@@ -230,7 +230,7 @@ function updatePreviewWithSummary(summary) {
 async function loadGoalBank() {
     try {
         console.log('Fetching goals from JSON file...');
-        const response = await fetch('data/goals.json');
+        const response = await fetch('/IPLC-IP/data/goals.json');
         
         if (!response.ok) {
             throw new Error('Failed to fetch goals data');
