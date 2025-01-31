@@ -10,20 +10,179 @@ let currentGoals = {
     shortTerm: []
 };
 let activeTab = null;
+let pdfWorker = null;
+let currentPreviewPdf = null;
+let previewUpdateTimeout = null;
 
 // DOM Elements
-const clientNameInput = document.getElementById('clientName');
-const planDateInput = document.getElementById('planDate');
-const dobInput = document.getElementById('dob');
-const frequencyInput = document.getElementById('frequency');
-const durationInput = document.getElementById('duration');
-const languageSelect = document.getElementById('language');
-const goalSearchInput = document.getElementById('goalSearch');
-const goalsListElement = document.getElementById('goalsList');
-const goalsTabsElement = document.getElementById('goalsTabs');
-const previewDocument = document.getElementById('previewDocument');
-const saveAsPdfButton = document.getElementById('saveAsPdf');
-const saveAsDocButton = document.getElementById('saveAsDoc');
+let clientNameInput, planDateInput, dobInput, frequencyInput, durationInput, 
+    languageSelect, goalSearchInput, goalsListElement, goalsTabsElement, 
+    previewDocument, saveAsPdfButton, previewLoading;
+
+function initializeDOMElements() {
+    clientNameInput = document.getElementById('clientName');
+    planDateInput = document.getElementById('planDate');
+    dobInput = document.getElementById('dob');
+    frequencyInput = document.getElementById('frequency');
+    durationInput = document.getElementById('duration');
+    languageSelect = document.getElementById('language');
+    goalSearchInput = document.getElementById('goalSearch');
+    goalsListElement = document.getElementById('goalsList');
+    goalsTabsElement = document.getElementById('goalsTabs');
+    previewDocument = document.getElementById('previewPages');
+    saveAsPdfButton = document.getElementById('saveAsPdf');
+    previewLoading = document.querySelector('.preview-loading');
+
+    if (!goalsTabsElement) {
+        console.error('Goals tabs element not found');
+        return;
+    }
+
+    // Initialize PDF Worker
+    pdfWorker = new Worker('pdfWorker.js');
+    pdfWorker.onmessage = handleWorkerMessage;
+}
+
+// Handle messages from PDF Worker
+async function handleWorkerMessage(e) {
+    const { type, data, error } = e.data;
+
+    switch (type) {
+        case 'previewGenerated':
+            try {
+                await updatePdfPreview(data);
+            } finally {
+                hideLoading();
+            }
+            break;
+        case 'error':
+            console.error('PDF Worker error:', error);
+            hideLoading();
+            break;
+    }
+}
+
+// Show/hide loading indicator
+function showLoading() {
+    previewLoading.classList.add('active');
+}
+
+function hideLoading() {
+    previewLoading.classList.remove('active');
+}
+
+// Debounced preview update
+function debouncedUpdatePreview() {
+    clearTimeout(previewUpdateTimeout);
+    previewUpdateTimeout = setTimeout(() => {
+        showLoading();
+        generatePreview();
+    }, 250);
+}
+
+// Generate preview data
+function generatePreview() {
+    const clientName = clientNameInput.value;
+    const planDate = planDateInput.value ? new Date(planDateInput.value).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
+    const dob = dobInput.value ? new Date(dobInput.value) : null;
+    const frequency = frequencyInput.value;
+    const duration = durationInput.value;
+    
+    // Calculate age if both planDate and dob are set
+    let ageString = '';
+    if (planDate && dob) {
+        const planDateTime = new Date(planDateInput.value);
+        const years = planDateTime.getFullYear() - dob.getFullYear();
+        const months = planDateTime.getMonth() - dob.getMonth();
+        ageString = `${years} years, ${months} months`;
+    }
+
+    const previewData = {
+        clientInfo: {
+            name: clientName,
+            planDate,
+            dob: dob ? dob.toLocaleDateString() : '',
+            age: ageString,
+            frequency,
+            duration
+        },
+        goals: currentGoals,
+        summary: document.getElementById('planSummary')?.querySelector('#summaryText')?.textContent
+    };
+
+    const cacheKey = JSON.stringify(previewData);
+    pdfWorker.postMessage({ type: 'generatePreview', data: previewData, cacheKey });
+}
+
+// Update PDF preview using PDF.js
+async function updatePdfPreview(pdfBytes) {
+    try {
+        // Clear existing preview
+        previewDocument.innerHTML = '';
+        document.getElementById('previewTabs').innerHTML = '';
+
+        // Load PDF document
+        const pdfData = new Uint8Array(pdfBytes);
+        const loadingTask = pdfjsLib.getDocument({ data: pdfData });
+        const pdf = await loadingTask.promise;
+        currentPreviewPdf = pdf;
+
+        // Calculate scale to fit preview area
+        const previewArea = document.querySelector('.preview-area');
+        const firstPage = await pdf.getPage(1);
+        const viewport = firstPage.getViewport({ scale: 1.0 });
+        
+        // Calculate scale to fit height with minimal padding
+        const containerHeight = previewArea.clientHeight - 20;
+        const heightScale = containerHeight / viewport.height;
+        
+        // Calculate scale to fit width with minimal padding
+        const containerWidth = previewArea.clientWidth - 20;
+        const widthScale = containerWidth / viewport.width;
+        
+        // Use the smaller scale to ensure the page fits both dimensions
+        // Multiply by 0.98 to make it 98% of the available space
+        const scale = Math.min(heightScale, widthScale) * 0.98;
+
+        // Render each page
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const scaledViewport = page.getViewport({ scale });
+
+            // Create page container
+            const pageContainer = document.createElement('div');
+            pageContainer.className = 'preview-document';
+            pageContainer.style.display = pageNum === 1 ? 'block' : 'none';
+            pageContainer.style.width = `${scaledViewport.width}px`;
+            pageContainer.style.height = `${scaledViewport.height}px`;
+            pageContainer.style.margin = '0 auto';
+
+            // Create canvas
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = scaledViewport.width;
+            canvas.height = scaledViewport.height;
+
+            // Render PDF page
+            await page.render({
+                canvasContext: context,
+                viewport: scaledViewport
+            }).promise;
+
+            pageContainer.appendChild(canvas);
+            previewDocument.appendChild(pageContainer);
+
+            // Create tab
+            const tab = document.createElement('button');
+            tab.className = `preview-tab ${pageNum === 1 ? 'active' : ''}`;
+            tab.textContent = `Page ${pageNum}`;
+            tab.onclick = () => switchPreviewPage(pageNum - 1);
+            document.getElementById('previewTabs').appendChild(tab);
+        }
+    } catch (error) {
+        console.error('Error updating PDF preview:', error);
+    }
+}
 
 // Initialize TensorFlow models
 async function initializeTensorflow() {
@@ -45,38 +204,44 @@ function updateTabs() {
     goalsTabsElement.innerHTML = '';
     const categories = Array.from(selectedCategories);
     
-    // If no categories selected, clear tabs and show all goals
-    if (categories.length === 0) {
+    // Create "All goals" tab
+    const allGoalsTab = document.createElement('button');
+    allGoalsTab.className = `goals-tab ${activeTab === null ? 'active' : ''}`;
+    allGoalsTab.textContent = 'All goals';
+    allGoalsTab.dataset.category = '';
+    
+    allGoalsTab.addEventListener('click', () => {
+        document.querySelectorAll('.goals-tab').forEach(t => t.classList.remove('active'));
+        allGoalsTab.classList.add('active');
         activeTab = null;
         updateGoalsList();
-        return;
+    });
+    
+    goalsTabsElement.appendChild(allGoalsTab);
+
+    // Create tabs for selected categories
+    if (categories.length > 0) {
+        categories.forEach(category => {
+            const tab = document.createElement('button');
+            tab.className = `goals-tab ${activeTab === category ? 'active' : ''}`;
+            tab.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+            tab.dataset.category = category;
+            
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.goals-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                activeTab = category;
+                updateGoalsList();
+            });
+            
+            goalsTabsElement.appendChild(tab);
+        });
     }
 
-    // Create tabs for each selected category
-    categories.forEach(category => {
-        const tab = document.createElement('button');
-        tab.className = `goals-tab ${activeTab === category ? 'active' : ''}`;
-        tab.textContent = category.charAt(0).toUpperCase() + category.slice(1);
-        tab.dataset.category = category;
-        
-        tab.addEventListener('click', () => {
-            // Update active tab
-            document.querySelectorAll('.goals-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            activeTab = category;
-            updateGoalsList();
-        });
-        
-        goalsTabsElement.appendChild(tab);
-    });
-
-    // If no active tab or active tab was unselected, select first tab
-    if (!activeTab || !selectedCategories.has(activeTab)) {
-        activeTab = categories[0];
-        const firstTab = goalsTabsElement.querySelector('.goals-tab');
-        if (firstTab) {
-            firstTab.classList.add('active');
-        }
+    // If no active tab is set or the active tab was unselected, select "All goals" tab
+    if (activeTab === undefined || (activeTab !== null && !categories.includes(activeTab))) {
+        activeTab = null;
+        allGoalsTab.classList.add('active');
     }
 }
 
@@ -249,27 +414,31 @@ async function generatePlanSummary() {
 
 // Helper function to update preview with summary
 function updatePreviewWithSummary(summary) {
-    const container = document.querySelector('.preview-content-container');
-    if (!container) return;
-
-    // Remove existing summary if present
-    const existingSummary = document.getElementById('planSummary');
-    if (existingSummary) {
-        existingSummary.remove();
-    }
-
-    // Create new summary section
+    // Force a preview update to ensure proper page structure
+    updatePreview();
+    
+    // Create new page for summary
+    const summaryPage = createNewPage();
+    const summaryContainer = summaryPage.querySelector('.preview-content-container');
     const summarySection = document.createElement('div');
     summarySection.id = 'planSummary';
     summarySection.className = 'preview-section';
-    summarySection.style.display = 'block';
     summarySection.innerHTML = `
         <h3>Plan Summary</h3>
         <p id="summaryText" style="white-space: pre-line;">${summary}</p>
     `;
+    summaryContainer.appendChild(summarySection);
 
-    // Add to the end of the container
-    container.appendChild(summarySection);
+    // Add summary page to preview
+    previewDocument.appendChild(summaryPage);
+
+    // Create new tab for summary page
+    const pageIndex = previewDocument.children.length - 1;
+    const tab = document.createElement('button');
+    tab.className = 'preview-tab';
+    tab.textContent = `Page ${pageIndex + 1}`;
+    tab.onclick = () => switchPreviewPage(pageIndex);
+    document.getElementById('previewTabs').appendChild(tab);
 }
 
 // Load goals from JSON file into IndexedDB
@@ -329,6 +498,12 @@ async function loadGoalBank() {
 
 // UI Event Handlers
 function initializeEventListeners() {
+    if (!saveAsPdfButton) {
+        console.error('Save PDF button not found in DOM');
+    } else {
+        saveAsPdfButton.addEventListener('click', exportToPdf);
+    }
+
     // Category checkboxes
     document.querySelectorAll('.goal-categories input[type="checkbox"]').forEach(checkbox => {
         checkbox.addEventListener('change', async (e) => {
@@ -369,10 +544,6 @@ function initializeEventListeners() {
     [clientNameInput, planDateInput, dobInput, frequencyInput, durationInput, languageSelect].forEach(input => {
         input.addEventListener('input', updatePreview);
     });
-
-    // Save buttons
-    saveAsPdfButton.addEventListener('click', exportToPdf);
-    saveAsDocButton.addEventListener('click', exportToDocx);
 }
 
 // Update goals list based on search and filters
@@ -381,9 +552,12 @@ async function updateGoalsList() {
         const query = goalSearchInput.value;
         let categories = Array.from(selectedCategories);
         
-        // If there's an active tab, only show goals for that category
-        if (activeTab) {
+        // Filter goals based on active tab
+        if (activeTab !== null) {
             categories = [activeTab];
+        } else {
+            // Show all goals if "All goals" tab is active
+            categories = await goalDB.getCategories();
         }
         
         let goals;
@@ -469,265 +643,67 @@ function renderGoalsList(goals) {
 function createNewPage() {
     const page = document.createElement('div');
     page.className = 'preview-document';
-    page.innerHTML = `
-        <div class="preview-sidebar">
-            <div class="vertical-text">INTERVENTION PLAN</div>
-        </div>
-        <div class="preview-content-container"></div>
+    page.style.cssText = `
+        background-image: url("background_for_preview.png");
+        background-size: contain;
+        background-position: top center;
+        background-repeat: no-repeat;
+        min-height: 1056px;
+        max-height: 1056px;
+        width: 816px;
+        margin: 0 auto;
+        overflow: hidden;
     `;
+    page.innerHTML = `<div class="preview-content-container"></div>`;
     return page;
 }
 
-// Update preview panel
+// Update preview panel - now just triggers PDF preview generation
 function updatePreview() {
-    const clientName = clientNameInput.value;
-    const planDate = planDateInput.value ? new Date(planDateInput.value).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
-    const dob = dobInput.value ? new Date(dobInput.value) : null;
-    const frequency = frequencyInput.value;
-    const duration = durationInput.value;
-    const language = languageSelect.value;
+    debouncedUpdatePreview();
+}
 
-    // Calculate age if both planDate and dob are set
-    let ageString = '';
-    if (planDate && dob) {
-        const planDateTime = new Date(planDateInput.value);
-        const years = planDateTime.getFullYear() - dob.getFullYear();
-        const months = planDateTime.getMonth() - dob.getMonth();
-        ageString = `${years} years, ${months} months`;
-    }
-
-    // Create content sections
-    const sections = [
-        {
-            title: null,
-            content: `
-                <div class="preview-header">
-                    <img src="./logo.png" alt="IPLC Logo" class="preview-logo">
-                </div>
-                <div class="preview-section">
-                    <p><strong>Name:</strong> ${clientName}</p>
-                    <p><strong>Plan Date:</strong> ${planDate}</p>
-                    <p><strong>Date of Birth:</strong> ${dob ? dob.toLocaleDateString() : ''}</p>
-                    <p><strong>Age:</strong> ${ageString}</p>
-                </div>
-                <div class="preview-section">
-                    <h3>Frequency</h3>
-                    <p>Treatment plans are created and modified to each child's individual needs. ${clientName ? clientName + "'s" : ''} speech-language intervention plan currently consists of individual speech-language therapy ${frequency} times a week for ${duration} minutes.</p>
-                </div>
-            `
-        },
-        {
-            title: 'Long Term Objectives',
-            content: `
-                <ul>
-                    ${currentGoals.longTerm.map(goal => `<li>${goal.text}</li>`).join('\n')}
-                </ul>
-            `
-        },
-        {
-            title: 'Short Term Objectives',
-            content: `
-                <ul>
-                    ${currentGoals.shortTerm.map(goal => `<li>${goal.text}</li>`).join('\n')}
-                </ul>
-            `
+// Function to switch between preview pages
+function switchPreviewPage(pageIndex) {
+    // Update tabs
+    document.querySelectorAll('.preview-tab').forEach((tab, index) => {
+        if (index === pageIndex) {
+            tab.classList.add('active');
+        } else {
+            tab.classList.remove('active');
         }
-    ];
-
-    // Store existing summary if it exists
-    const existingSummary = document.getElementById('planSummary');
-    const existingSummaryText = existingSummary ? existingSummary.querySelector('#summaryText').textContent : '';
-
-    // Clear existing content
-    previewDocument.innerHTML = '';
-
-    // Create first page
-    let currentPage = createNewPage();
-    previewDocument.appendChild(currentPage);
-    let currentContainer = currentPage.querySelector('.preview-content-container');
-
-    // Add sections one by one
-    let itemsOnCurrentPage = 0;
-    const MAX_ITEMS_PER_PAGE = 10; // Maximum number of list items per page
-
-    sections.forEach((section, index) => {
-        const sectionContent = section.title ? 
-            `<div class="preview-section"><h3>${section.title}</h3>${section.content}</div>` :
-            section.content;
-
-        // Count list items in this section
-        const listItemCount = (sectionContent.match(/<li>/g) || []).length;
-
-        // If this section would exceed the limit, create new page
-        if (itemsOnCurrentPage + listItemCount > MAX_ITEMS_PER_PAGE && index > 0) {
-            currentPage = createNewPage();
-            previewDocument.appendChild(currentPage);
-            currentContainer = currentPage.querySelector('.preview-content-container');
-            itemsOnCurrentPage = 0;
-        }
-
-        // Add content to current container
-        currentContainer.insertAdjacentHTML('beforeend', sectionContent);
-        itemsOnCurrentPage += listItemCount;
     });
 
-    // Restore summary if it existed
-    if (existingSummaryText) {
-        updatePreviewWithSummary(existingSummaryText);
-    }
+    // Update pages
+    document.querySelectorAll('.preview-document').forEach((page, index) => {
+        page.classList.toggle('active', index === pageIndex);
+    });
 }
 
-// Export functions
+// Export function now uses the worker-generated PDF
 async function exportToPdf() {
     try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        // Function to add page header (logo and vertical text)
-        const addPageHeader = () => {
-            // Add logo
-            const logoImg = document.querySelector('.preview-logo');
-            if (logoImg.complete) {
-                doc.addImage(logoImg, 'PNG', 15, 15, 30, 30);
-            }
-            
-            // Add vertical text
-            doc.setFontSize(16);
-            doc.text('INTERVENTION PLAN', 25, 100, { angle: 90 });
-        };
-
-        // Add first page header
-        addPageHeader();
-        
-        doc.setFontSize(12);
-        
-        // Process each preview document page
-        const pages = previewDocument.querySelectorAll('.preview-document');
-        pages.forEach((page, pageIndex) => {
-            if (pageIndex > 0) {
-                doc.addPage();
-                addPageHeader();
-            }
-
-            const contentContainer = page.querySelector('.preview-content-container');
-            const sections = contentContainer.querySelectorAll('.preview-section');
-            let currentY = 60;
-            
-            sections.forEach(section => {
-                // Extract text content
-                const lines = section.innerText.split('\n').filter(line => line.trim());
-                
-                // Write each line
-                lines.forEach(line => {
-                    const splitText = doc.splitTextToSize(line, 160);
-                    doc.text(50, currentY, splitText);
-                    currentY += 10 * splitText.length;
-                });
-                
-                currentY += 10; // Add space between sections
-            });
-        });
-        
-        // Save the PDF
-        const clientName = clientNameInput.value.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const fileName = `${clientName}_intervention_plan.pdf`;
-        doc.save(fileName);
-    } catch (error) {
-        console.error('Error generating PDF:', error);
-    }
-}
-
-async function exportToDocx() {
-    try {
-        // Create a docx file with the content
-        const pages = previewDocument.querySelectorAll('.preview-document');
-        let content = '';
-        
-        pages.forEach((page, index) => {
-            content += `
-                <div class="preview-page" ${index > 0 ? 'style="page-break-before: always;"' : ''}>
-                    <div class="preview-sidebar">
-                        <div class="vertical-text">INTERVENTION PLAN</div>
-                    </div>
-                    ${page.querySelector('.preview-content-container').innerHTML}
-                </div>
-            `;
-        });
-
-        // Convert HTML to a format suitable for Word
-        const formattedContent = `
-            <html>
-                <head>
-                    <style>
-                        .preview-page {
-                            position: relative;
-                            margin-left: 120px;
-                            padding: 20px;
-                        }
-                        .preview-sidebar {
-                            width: 100px;
-                            position: absolute;
-                            left: -120px;
-                            top: 0;
-                            bottom: 0;
-                            background: #003366;
-                        }
-                        .vertical-text {
-                            color: white;
-                            writing-mode: vertical-lr;
-                            transform: rotate(180deg);
-                            text-align: center;
-                            font-size: 24pt;
-                            font-weight: normal;
-                            letter-spacing: 4pt;
-                            position: absolute;
-                            left: 0;
-                            top: 0;
-                            bottom: 0;
-                            width: 100px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                        }
-                        .preview-section {
-                            margin-bottom: 20px;
-                        }
-                        .preview-section h3 {
-                            margin-bottom: 10px;
-                        }
-                        .preview-section ul {
-                            margin: 0;
-                            padding-left: 20px;
-                        }
-                        .preview-section li {
-                            margin-bottom: 5px;
-                        }
-                    </style>
-                </head>
-                <body>
-                    ${content}
-                </body>
-            </html>
-        `;
-        
-        const blob = new Blob([formattedContent], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-        
-        // Create download link
-        const clientName = clientNameInput.value.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const fileName = `${clientName}_intervention_plan.docx`;
+        showLoading();
+        // Use the current preview PDF data
+        const pdfBytes = await currentPreviewPdf.getData();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = fileName;
+        link.href = url;
+        link.download = `${clientNameInput.value.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_intervention_plan.pdf`;
         link.click();
-        URL.revokeObjectURL(link.href);
+        URL.revokeObjectURL(url);
     } catch (error) {
-        console.error('Error generating DOCX:', error);
+        console.error('Error exporting PDF:', error);
+    } finally {
+        hideLoading();
     }
 }
 
 // Initialize application
 async function initialize() {
     try {
+        initializeDOMElements();
         await Promise.all([
             initializeTensorflow(),
             loadGoalBank()
@@ -737,24 +713,26 @@ async function initialize() {
         
         // Add Generate Summary button handler
         const generateSummaryButton = document.getElementById('generateSummary');
-        generateSummaryButton.addEventListener('click', async () => {
-            const originalText = generateSummaryButton.textContent;
-            generateSummaryButton.disabled = true;
-            generateSummaryButton.textContent = 'Generating...';
-            
-            try {
-                await generatePlanSummary();
-                generateSummaryButton.textContent = originalText;
-                generateSummaryButton.disabled = false;
-            } catch (error) {
-                generateSummaryButton.textContent = 'Failed to Generate';
-                console.error('Failed to generate summary:', error);
-                setTimeout(() => {
+        if (generateSummaryButton) {
+            generateSummaryButton.addEventListener('click', async () => {
+                const originalText = generateSummaryButton.textContent;
+                generateSummaryButton.disabled = true;
+                generateSummaryButton.textContent = 'Generating...';
+                
+                try {
+                    await generatePlanSummary();
                     generateSummaryButton.textContent = originalText;
                     generateSummaryButton.disabled = false;
-                }, 3000);
-            }
-        });
+                } catch (error) {
+                    generateSummaryButton.textContent = 'Failed to Generate';
+                    console.error('Failed to generate summary:', error);
+                    setTimeout(() => {
+                        generateSummaryButton.textContent = originalText;
+                        generateSummaryButton.disabled = false;
+                    }, 3000);
+                }
+            });
+        }
     } catch (error) {
         console.error('Error initializing application:', error);
     }

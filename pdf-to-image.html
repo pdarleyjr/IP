@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF to Image Converter</title>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://unpkg.com/pdf.js-extract@0.2.1/dist/pdf.js"></script>
+</head>
+<body>
+    <canvas id="pdfCanvas" style="display:none;"></canvas>
+    <img id="result" style="max-width:100%;">
+    <script>
+        async function convertPdfToImage() {
+            try {
+                const response = await fetch('IP_Blank.pdf');
+                const pdfData = await response.arrayBuffer();
+                
+                // Load the PDF
+                const loadingTask = pdfjsLib.getDocument({data: pdfData});
+                const pdf = await loadingTask.promise;
+                
+                // Get the first page
+                const page = await pdf.getPage(1);
+                
+                // Set scale for better quality
+                const scale = 2;
+                const viewport = page.getViewport({scale});
+                
+                // Prepare canvas
+                const canvas = document.getElementById('pdfCanvas');
+                const context = canvas.getContext('2d');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                
+                // Render PDF page to canvas
+                await page.render({
+                    canvasContext: context,
+                    viewport: viewport
+                }).promise;
+                
+                // Convert to image
+                const image = document.getElementById('result');
+                image.src = canvas.toDataURL('image/jpeg', 1.0);
+                
+                // Log when complete
+                image.onload = () => console.log('PDF converted to image successfully');
+            } catch (error) {
+                console.error('Error converting PDF:', error);
+            }
+        }
+        
+        // Run conversion when page loads
+        window.onload = convertPdfToImage;
+    </script>
+</body>
+</html>

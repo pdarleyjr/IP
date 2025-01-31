@@ -165,7 +165,7 @@
   },
   {
     "category": "attention",
-    "text": "​​will list 10 items when given a category."
+    "text": "will list 10 items when given a category."
   },
   {
     "category": "attention",
@@ -205,7 +205,7 @@
   },
   {
     "category": "attention",
-    "text": "will respond to “how” questions by providing steps to complete everyday tasks."
+    "text": "will respond to \"how\" questions by providing steps to complete everyday tasks."
   },
   {
     "category": "attention",
@@ -257,7 +257,7 @@
   },
   {
     "category": "attention",
-    "text": "​​will follow directions using HearBuilder."
+    "text": "will follow directions using HearBuilder."
   },
   {
     "category": "attention",
@@ -297,7 +297,7 @@
   },
   {
     "category": "attention",
-    "text": "​​will recall sentences."
+    "text": "will recall sentences."
   },
   {
     "category": "attention",
@@ -337,11 +337,11 @@
   },
   {
     "category": "executive",
-    "text": "will respond to “how” questions by providing steps to complete everyday tasks."
+    "text": "will respond to \"how\" questions by providing steps to complete everyday tasks."
   },
   {
     "category": "executive",
-    "text": "​​will prioritize items from most important to least important."
+    "text": "will prioritize items from most important to least important."
   },
   {
     "category": "executive",
@@ -377,7 +377,7 @@
   },
   {
     "category": "expressive",
-    "text": "Will participate in a turn taking activity while labeling  “my turn”/”your turn”"
+    "text": "Will participate in a turn taking activity while labeling \"my turn\"/\"your turn\""
   },
   {
     "category": "expressive",
@@ -405,7 +405,7 @@
   },
   {
     "category": "expressive",
-    "text": "will use gestures and/or words to request “more”, “give me”, “open”, and “all done”."
+    "text": "will use gestures and/or words to request \"more\", \"give me\", \"open\", and \"all done\"."
   },
   {
     "category": "expressive",
@@ -429,7 +429,7 @@
   },
   {
     "category": "expressive",
-    "text": "will use 2-3 words to request (“I want ___”, “open__”, “give me___”, “more___”, etc)"
+    "text": "will use 2-3 words to request (\"I want ___\", \"open__\", \"give me___\", \"more___\", etc)"
   },
   {
     "category": "expressive",
@@ -541,11 +541,11 @@
   },
   {
     "category": "expressive",
-    "text": "will formulate age-appropriate, grammatically correct, utterances to answer various ‘wh’ questions."
+    "text": "will formulate age-appropriate, grammatically correct, utterances to answer various \"wh\" questions."
   },
   {
     "category": "expressive",
-    "text": "​​will answer various “wh” questions throughout the session in structured and unstructured conversation."
+    "text": "will answer various \"wh\" questions throughout the session in structured and unstructured conversation."
   },
   {
     "category": "expressive",
@@ -585,7 +585,7 @@
   },
   {
     "category": "expressive",
-    "text": "will formulate age-appropriate, grammatically correct, utterances to answer various ‘wh’ questions."
+    "text": "will formulate age-appropriate, grammatically correct, utterances to answer various \"wh\" questions."
   },
   {
     "category": "expressive",
@@ -617,7 +617,7 @@
   },
   {
     "category": "fluency",
-    "text": "Will auditorily discriminate between “smooth” and “bumpy” speech."
+    "text": "Will auditorily discriminate between \"smooth\" and \"bumpy\" speech."
   },
   {
     "category": "fluency",
@@ -733,7 +733,7 @@
   },
   {
     "category": "receptive",
-    "text": "​​will understand spatial concepts (on, under, inside, behind, in front, next to)."
+    "text": "will understand spatial concepts (on, under, inside, behind, in front, next to)."
   },
   {
     "category": "receptive",
@@ -793,7 +793,7 @@
   },
   {
     "category": "receptive",
-    "text": "​​will follow directions using HearBuilder."
+    "text": "will follow directions using HearBuilder."
   },
   {
     "category": "receptive",
@@ -833,7 +833,7 @@
   },
   {
     "category": "receptive",
-    "text": "​​will recall sentences."
+    "text": "will recall sentences."
   },
   {
     "category": "receptive",
