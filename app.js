@@ -19,7 +19,7 @@ let clientNameInput, planDateInput, dobInput, frequencyInput, durationInput,
     languageSelect, goalSearchInput, goalsListElement, goalsTabsElement, 
     previewDocument, saveAsPdfButton, previewLoading;
 
-function initializeDOMElements() {
+async function initializeDOMElements() {
     clientNameInput = document.getElementById('clientName');
     planDateInput = document.getElementById('planDate');
     dobInput = document.getElementById('dob');
@@ -41,6 +41,44 @@ function initializeDOMElements() {
     // Initialize PDF Worker
     pdfWorker = new Worker('pdfWorker.js');
     pdfWorker.onmessage = handleWorkerMessage;
+    
+    // Load and initialize worker with template
+    try {
+        console.log('Loading template PDF...');
+        const templateResponse = await fetch('IP_Blank.pdf');
+        if (!templateResponse.ok) {
+            throw new Error(`Failed to load template: ${templateResponse.status} ${templateResponse.statusText}`);
+        }
+        
+        const templateBuffer = await templateResponse.arrayBuffer();
+        const base64Template = btoa(String.fromCharCode(...new Uint8Array(templateBuffer)));
+        console.log('Template loaded, initializing worker...');
+        
+        await new Promise((resolve, reject) => {
+            const timeoutId = setTimeout(() => {
+                reject(new Error('Worker initialization timeout'));
+            }, 5000);
+
+            const messageHandler = (e) => {
+                if (e.data.type === 'initialized') {
+                    clearTimeout(timeoutId);
+                    pdfWorker.removeEventListener('message', messageHandler);
+                    resolve();
+                }
+            };
+
+            pdfWorker.addEventListener('message', messageHandler);
+            pdfWorker.postMessage({ 
+                type: 'init',
+                templateData: base64Template
+            });
+        });
+
+        console.log('Worker initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize worker with template:', error);
+        throw error;
+    }
 }
 
 // Handle messages from PDF Worker
@@ -48,6 +86,10 @@ async function handleWorkerMessage(e) {
     const { type, data, error } = e.data;
 
     switch (type) {
+        case 'initialized':
+            console.log('PDF Worker initialized with template');
+            break;
+            
         case 'previewGenerated':
             try {
                 await updatePdfPreview(data);
@@ -55,6 +97,7 @@ async function handleWorkerMessage(e) {
                 hideLoading();
             }
             break;
+            
         case 'error':
             console.error('PDF Worker error:', error);
             hideLoading();
@@ -87,8 +130,8 @@ function generatePreview() {
     const dob = dobInput.value ? new Date(dobInput.value) : null;
     const frequency = frequencyInput.value;
     const duration = durationInput.value;
+    const language = languageSelect.value;
     
-    // Calculate age if both planDate and dob are set
     let ageString = '';
     if (planDate && dob) {
         const planDateTime = new Date(planDateInput.value);
@@ -104,7 +147,8 @@ function generatePreview() {
             dob: dob ? dob.toLocaleDateString() : '',
             age: ageString,
             frequency,
-            duration
+            duration,
+            language
         },
         goals: currentGoals,
         summary: document.getElementById('planSummary')?.querySelector('#summaryText')?.textContent
@@ -132,17 +176,21 @@ async function updatePdfPreview(pdfBytes) {
         const firstPage = await pdf.getPage(1);
         const viewport = firstPage.getViewport({ scale: 1.0 });
         
-        // Calculate scale to fit height with minimal padding
         const containerHeight = previewArea.clientHeight - 20;
         const heightScale = containerHeight / viewport.height;
         
-        // Calculate scale to fit width with minimal padding
         const containerWidth = previewArea.clientWidth - 20;
         const widthScale = containerWidth / viewport.width;
         
-        // Use the smaller scale to ensure the page fits both dimensions
-        // Multiply by 0.98 to make it 98% of the available space
         const scale = Math.min(heightScale, widthScale) * 0.98;
+
+        // Create tab container if it doesn't exist
+        const tabsContainer = document.getElementById('previewTabs');
+        if (!tabsContainer) {
+            const tabs = document.createElement('div');
+            tabs.id = 'previewTabs';
+            previewArea.insertBefore(tabs, previewDocument);
+        }
 
         // Render each page
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
@@ -152,10 +200,11 @@ async function updatePdfPreview(pdfBytes) {
             // Create page container
             const pageContainer = document.createElement('div');
             pageContainer.className = 'preview-document';
-            pageContainer.style.display = pageNum === 1 ? 'block' : 'none';
+            pageContainer.style.display = 'none';
             pageContainer.style.width = `${scaledViewport.width}px`;
             pageContainer.style.height = `${scaledViewport.height}px`;
             pageContainer.style.margin = '0 auto';
+            pageContainer.dataset.pageNumber = pageNum;
 
             // Create canvas
             const canvas = document.createElement('canvas');
@@ -174,75 +223,56 @@ async function updatePdfPreview(pdfBytes) {
 
             // Create tab
             const tab = document.createElement('button');
-            tab.className = `preview-tab ${pageNum === 1 ? 'active' : ''}`;
+            tab.className = 'preview-tab';
             tab.textContent = `Page ${pageNum}`;
+            tab.dataset.pageNumber = pageNum;
             tab.onclick = () => switchPreviewPage(pageNum - 1);
             document.getElementById('previewTabs').appendChild(tab);
         }
+
+        // Show first page and activate first tab
+        switchPreviewPage(0);
     } catch (error) {
         console.error('Error updating PDF preview:', error);
     }
 }
 
-// Initialize TensorFlow models
-async function initializeTensorflow() {
-    try {
-        console.log('Loading Universal Sentence Encoder...');
-        useModel = await use.load();
-        console.log('USE model loaded successfully');
-    } catch (error) {
-        console.error('Error loading USE model:', error);
-        // Fall back to text-based search only
-        useModel = null;
+// Function to switch between preview pages
+function switchPreviewPage(pageIndex) {
+    // Update tabs
+    document.querySelectorAll('.preview-tab').forEach((tab, index) => {
+        if (index === pageIndex) {
+            tab.classList.add('active');
+        } else {
+            tab.classList.remove('active');
+        }
+    });
+
+    // Update pages
+    document.querySelectorAll('.preview-document').forEach((page, index) => {
+        if (index === pageIndex) {
+            page.style.display = 'block';
+            page.classList.add('active');
+        } else {
+            page.style.display = 'none';
+            page.classList.remove('active');
+        }
+    });
+
+    // Scroll the active tab into view
+    const activeTab = document.querySelector('.preview-tab.active');
+    if (activeTab) {
+        activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
     }
 }
 
-// Function to update tabs based on selected categories
-function updateTabs() {
-    if (!goalsTabsElement) return;
-    
-    goalsTabsElement.innerHTML = '';
-    const categories = Array.from(selectedCategories);
-    
-    // Create "All goals" tab
-    const allGoalsTab = document.createElement('button');
-    allGoalsTab.className = `goals-tab ${activeTab === null ? 'active' : ''}`;
-    allGoalsTab.textContent = 'All goals';
-    allGoalsTab.dataset.category = '';
-    
-    allGoalsTab.addEventListener('click', () => {
-        document.querySelectorAll('.goals-tab').forEach(t => t.classList.remove('active'));
-        allGoalsTab.classList.add('active');
-        activeTab = null;
-        updateGoalsList();
-    });
-    
-    goalsTabsElement.appendChild(allGoalsTab);
-
-    // Create tabs for selected categories
-    if (categories.length > 0) {
-        categories.forEach(category => {
-            const tab = document.createElement('button');
-            tab.className = `goals-tab ${activeTab === category ? 'active' : ''}`;
-            tab.textContent = category.charAt(0).toUpperCase() + category.slice(1);
-            tab.dataset.category = category;
-            
-            tab.addEventListener('click', () => {
-                document.querySelectorAll('.goals-tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                activeTab = category;
-                updateGoalsList();
-            });
-            
-            goalsTabsElement.appendChild(tab);
-        });
-    }
-
-    // If no active tab is set or the active tab was unselected, select "All goals" tab
-    if (activeTab === undefined || (activeTab !== null && !categories.includes(activeTab))) {
-        activeTab = null;
-        allGoalsTab.classList.add('active');
-    }
+// Update preview panel
+function updatePreview() {
+    showLoading();
+    // Clear existing preview
+    previewDocument.innerHTML = '';
+    document.getElementById('previewTabs').innerHTML = '';
+    debouncedUpdatePreview();
 }
 
 // Helper function to validate required inputs
@@ -496,6 +526,39 @@ async function loadGoalBank() {
     }
 }
 
+// Update tabs based on selected categories
+function updateTabs() {
+    if (!goalsTabsElement) return;
+    
+    goalsTabsElement.innerHTML = '';
+    
+    // Create "All goals" tab
+    const allTab = document.createElement('button');
+    allTab.className = `goals-tab ${activeTab === null ? 'active' : ''}`;
+    allTab.textContent = 'All goals';
+    allTab.onclick = async () => {
+        activeTab = null;
+        document.querySelectorAll('.goals-tab').forEach(tab => tab.classList.remove('active'));
+        allTab.classList.add('active');
+        await updateGoalsList();
+    };
+    goalsTabsElement.appendChild(allTab);
+    
+    // Create tab for each selected category
+    selectedCategories.forEach(category => {
+        const tab = document.createElement('button');
+        tab.className = `goals-tab ${activeTab === category ? 'active' : ''}`;
+        tab.textContent = capitalizeWords(category);
+        tab.onclick = async () => {
+            activeTab = category;
+            document.querySelectorAll('.goals-tab').forEach(tab => tab.classList.remove('active'));
+            tab.classList.add('active');
+            await updateGoalsList();
+        };
+        goalsTabsElement.appendChild(tab);
+    });
+}
+
 // UI Event Handlers
 function initializeEventListeners() {
     if (!saveAsPdfButton) {
@@ -644,59 +707,85 @@ function createNewPage() {
     const page = document.createElement('div');
     page.className = 'preview-document';
     page.style.cssText = `
-        background-image: url("background_for_preview.png");
-        background-size: contain;
-        background-position: top center;
-        background-repeat: no-repeat;
         min-height: 1056px;
         max-height: 1056px;
         width: 816px;
         margin: 0 auto;
         overflow: hidden;
+        position: relative;
     `;
     page.innerHTML = `<div class="preview-content-container"></div>`;
     return page;
 }
 
-// Update preview panel - now just triggers PDF preview generation
-function updatePreview() {
-    debouncedUpdatePreview();
-}
-
-// Function to switch between preview pages
-function switchPreviewPage(pageIndex) {
-    // Update tabs
-    document.querySelectorAll('.preview-tab').forEach((tab, index) => {
-        if (index === pageIndex) {
-            tab.classList.add('active');
-        } else {
-            tab.classList.remove('active');
-        }
-    });
-
-    // Update pages
-    document.querySelectorAll('.preview-document').forEach((page, index) => {
-        page.classList.toggle('active', index === pageIndex);
-    });
-}
-
-// Export function now uses the worker-generated PDF
+// Export function uses html2pdf.js for final PDF generation
 async function exportToPdf() {
     try {
         showLoading();
-        // Use the current preview PDF data
-        const pdfBytes = await currentPreviewPdf.getData();
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${clientNameInput.value.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_intervention_plan.pdf`;
-        link.click();
-        URL.revokeObjectURL(url);
+
+        // Create a container for the PDF content
+        const container = document.createElement('div');
+        container.style.visibility = 'hidden';
+        container.style.position = 'absolute';
+        container.style.left = '-9999px';
+        document.body.appendChild(container);
+
+        // Clone the current preview pages
+        const previewPages = document.querySelectorAll('.preview-document');
+        previewPages.forEach(page => {
+            const clonedPage = page.cloneNode(true);
+            // Remove any display:none styling
+            clonedPage.style.display = 'block';
+            container.appendChild(clonedPage);
+        });
+
+        // Configure html2pdf options
+        const opt = {
+            margin: [108, 54, 108, 126], // [top, right, bottom, left] in points (72 points = 1 inch)
+            filename: `${clientNameInput.value.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_intervention_plan.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { 
+                scale: 2,
+                useCORS: true,
+                letterRendering: true,
+                backgroundColor: '#ffffff'
+            },
+            jsPDF: { 
+                unit: 'pt', 
+                format: 'letter', 
+                orientation: 'portrait'
+            },
+            pagebreak: {
+                mode: ['avoid-all', 'css', 'legacy'],
+                before: '.preview-document',
+                after: '.preview-document',
+                avoid: ['tr', 'td', '.goal-item'],
+                bottomMargin: 108 // 1.5 inches in points (72 points = 1 inch)
+            }
+        };
+
+        // Generate and save PDF
+        await html2pdf().from(container).set(opt).save();
+
+        // Clean up
+        document.body.removeChild(container);
     } catch (error) {
         console.error('Error exporting PDF:', error);
+        alert('Failed to export PDF. Please try again.');
     } finally {
         hideLoading();
+    }
+}
+
+// Initialize TensorFlow and Universal Sentence Encoder
+async function initializeTensorflow() {
+    try {
+        console.log('Loading Universal Sentence Encoder...');
+        useModel = await use.load();
+        console.log('Universal Sentence Encoder loaded successfully');
+    } catch (error) {
+        console.error('Error loading Universal Sentence Encoder:', error);
+        useModel = null;
     }
 }
 

@@ -302,45 +302,41 @@ body {
     100% { transform: rotate(360deg); }
 }
 
+/* Preview Area and Tabs */
 .preview-area {
     flex: 1;
     overflow: hidden;
     position: relative;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0;
-}
-
-#previewPages {
-    position: relative;
-    display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin: 0;
-    padding: 10px;
-    height: calc(100vh - 90px);
-    overflow: hidden;
+    background: #f8f9fa;
 }
 
-.preview-tabs {
-    padding: 10px 15px 0;
-    display: flex;
-    gap: 2px;
+#previewTabs {
+    position: sticky;
+    top: 0;
     background: #fff;
-    border-bottom: none;
+    z-index: 10;
+    padding: 10px 15px 0;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    gap: 5px;
+    overflow-x: auto;
+    white-space: nowrap;
 }
 
 .preview-tab {
     padding: 8px 16px;
-    border: none;
+    border: 1px solid #ddd;
+    border-bottom: none;
     background: #f0f0f0;
     cursor: pointer;
     border-radius: 8px 8px 0 0;
     font-size: 0.85rem;
     color: #666;
     transition: all 0.2s ease;
+    position: relative;
+    top: 1px;
 }
 
 .preview-tab:hover {
@@ -349,38 +345,39 @@ body {
 }
 
 .preview-tab.active {
-    background: #f8f9fa;
+    background: #fff;
     color: #007bff;
     font-weight: 500;
-    position: relative;
+    border-bottom-color: #fff;
 }
 
-.preview-tab.active::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: #007bff;
+#previewPages {
+    position: relative;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    overflow: hidden;
 }
 
 .preview-document {
-    display: none;
     position: relative;
     background: #fff;
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     margin: 0 auto;
     border-radius: 4px;
+    display: none;
+}
+
+.preview-document.active {
+    display: block;
 }
 
 .preview-document canvas {
     display: block;
     margin: 0 auto;
-}
-
-.preview-document.active {
-    display: block;
+    border: 1px solid #e0e0e0;
 }
 
 .preview-content-container {
