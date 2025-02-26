@@ -3,113 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Intervention Plan Generator</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/universal-sentence-encoder"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+    <title>Intervention Plan</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <!-- Left Panel: Data Entry -->
-        <div class="data-entry">
-            <div class="logo-container">
-                <img src="logo.png" alt="IPLC Logo" class="logo">
-            </div>
-            <div class="data-entry-content">
-                <div class="client-info-grid">
-                    <h2>Client Information</h2>
-                    <div class="form-group">
-                        <label for="clientName">Client Name:</label>
-                        <input type="text" id="clientName" placeholder="Enter client name">
-                    </div>
-                    <div class="form-group">
-                        <label for="planDate">Plan Date:</label>
-                        <input type="date" id="planDate">
-                    </div>
-                    <div class="form-group">
-                        <label for="dob">Date of Birth:</label>
-                        <input type="date" id="dob">
-                    </div>
-                    <div class="form-group">
-                        <label for="frequency">Frequency:</label>
-                        <input type="text" id="frequency" placeholder="e.g., 2">
-                    </div>
-                    <div class="form-group">
-                        <label for="duration">Duration (minutes):</label>
-                        <input type="text" id="duration" placeholder="e.g., 30">
-                    </div>
-                    <div class="form-group">
-                        <label for="language">Language:</label>
-                        <select id="language">
-                            <option value="">Select language</option>
-                            <option value="English">English</option>
-                            <option value="Spanish">Spanish</option>
-                            <option value="Bilingual (English/Spanish)">Bilingual (English/Spanish)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <h2>Goal Categories</h2>
-                <div class="goal-categories">
-                <div class="category-checkbox" data-category="articulation">
-                    <input type="checkbox" id="category-articulation" value="articulation" data-category="articulation">
-                    <label for="category-articulation" class="category-label" data-category="articulation">Articulation</label>
-                </div>
-                <div class="category-checkbox" data-category="fluency">
-                    <input type="checkbox" id="category-fluency" value="fluency" data-category="fluency">
-                    <label for="category-fluency" class="category-label" data-category="fluency">Fluency</label>
-                </div>
-                <div class="category-checkbox" data-category="expressive">
-                    <input type="checkbox" id="category-expressive" value="expressive" data-category="expressive">
-                    <label for="category-expressive" class="category-label" data-category="expressive">Expressive</label>
-                </div>
-                <div class="category-checkbox" data-category="receptive">
-                    <input type="checkbox" id="category-receptive" value="receptive" data-category="receptive">
-                    <label for="category-receptive" class="category-label" data-category="receptive">Receptive</label>
-                </div>
-                <div class="category-checkbox" data-category="pragmatic">
-                    <input type="checkbox" id="category-pragmatic" value="pragmatic" data-category="pragmatic">
-                    <label for="category-pragmatic" class="category-label" data-category="pragmatic">Pragmatic</label>
-                </div>
-                <div class="category-checkbox" data-category="attention">
-                    <input type="checkbox" id="category-attention" value="attention" data-category="attention">
-                    <label for="category-attention" class="category-label" data-category="attention">Attention</label>
-                </div>
-                <div class="category-checkbox" data-category="executive">
-                    <input type="checkbox" id="category-executive" value="executive" data-category="executive">
-                    <label for="category-executive" class="category-label" data-category="executive">Executive</label>
-                </div>
-            </div>
-
-                <h2>Goals</h2>
-                <div class="goals-tabs" id="goalsTabs"></div>
-                <div class="search-container">
-                    <input type="text" id="goalSearch" placeholder="Search goals...">
-                </div>
-                <div id="goalsList" class="goals-list"></div>
-            </div>
-        </div>
-
-        <!-- Right Panel: Preview -->
-        <div class="preview-panel">
-                <div class="preview-loading">
-                    <div class="loading-spinner"></div>
-                    <div class="loading-text">Updating Preview...</div>
-                </div>
-                <div class="preview-tabs" id="previewTabs"></div>
-                <div class="preview-area">
-                    <div id="previewPages"></div>
-                </div>
-                <div class="preview-footer">
-                    <button id="generateSummary" class="primary-button">Generate Summary</button>
-                    <button id="saveAsPdf" class="secondary-button">Save as PDF</button>
-                </div>
-            </div>
-    </div>
-
-    <script type="module" src="app.js"></script>
+    <div id="app-container"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/dexie@3/dist/dexie.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>

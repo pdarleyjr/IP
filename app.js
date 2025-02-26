@@ -1,831 +1,1038 @@
-// Import dependencies
-import goalDB from './db.js';
-import { categoryDescriptions } from './categoryDescriptions.js';
+// app.js
+document.addEventListener('DOMContentLoaded', function() {
+    // IndexedDB setup
+    const db = new Dexie('InterventionDB');
+    // Add state object to store client information
+    let clientState = {
+        name: '',
+        dob: '',
+        ageYears: '',
+        ageMonths: '',
+        planDate: '',
+        frequency: '' // Added frequency
+    };
 
-// Global state
-let useModel = null;
-let selectedCategories = new Set();
-let currentGoals = {
-    longTerm: [],
-    shortTerm: []
-};
-let activeTab = null;
-let pdfWorker = null;
-let currentPreviewPdf = null;
-let previewUpdateTimeout = null;
-
-// DOM Elements
-let clientNameInput, planDateInput, dobInput, frequencyInput, durationInput, 
-    languageSelect, goalSearchInput, goalsListElement, goalsTabsElement, 
-    previewDocument, saveAsPdfButton, previewLoading;
-
-async function initializeDOMElements() {
-    clientNameInput = document.getElementById('clientName');
-    planDateInput = document.getElementById('planDate');
-    dobInput = document.getElementById('dob');
-    frequencyInput = document.getElementById('frequency');
-    durationInput = document.getElementById('duration');
-    languageSelect = document.getElementById('language');
-    goalSearchInput = document.getElementById('goalSearch');
-    goalsListElement = document.getElementById('goalsList');
-    goalsTabsElement = document.getElementById('goalsTabs');
-    previewDocument = document.getElementById('previewPages');
-    saveAsPdfButton = document.getElementById('saveAsPdf');
-    previewLoading = document.querySelector('.preview-loading');
-
-    if (!goalsTabsElement) {
-        console.error('Goals tabs element not found');
-        return;
+    // Function to update client state
+    function updateClientState() {
+        const clientNameInput = document.getElementById('clientName');
+        const dobInput = document.getElementById('dob');
+        const planDateInput = document.getElementById('planDate');
+        const ageYearsInput = document.getElementById('ageYears');
+        const ageMonthsInput = document.getElementById('ageMonths');
+        const frequencyInput = document.getElementById('frequency');
+        
+        if (clientNameInput && dobInput && planDateInput && ageYearsInput && ageMonthsInput && frequencyInput) {
+            clientState.name = clientNameInput.value;
+            clientState.dob = dobInput.value;
+            clientState.ageYears = ageYearsInput.value;
+            clientState.ageMonths = ageMonthsInput.value;
+            clientState.planDate = planDateInput.value;
+            clientState.frequency = frequencyInput.value;
+            console.log('Client state updated:', clientState);
+        }
     }
 
-    // Initialize PDF Worker
-    pdfWorker = new Worker('pdfWorker.js');
-    pdfWorker.onmessage = handleWorkerMessage;
-    
-    // Load and initialize worker with template
-    try {
-        console.log('Loading template PDF...');
-        const templateResponse = await fetch('IP_Blank.pdf');
-        if (!templateResponse.ok) {
-            throw new Error(`Failed to load template: ${templateResponse.status} ${templateResponse.statusText}`);
-        }
-        
-        const templateBuffer = await templateResponse.arrayBuffer();
-        const base64Template = btoa(String.fromCharCode(...new Uint8Array(templateBuffer)));
-        console.log('Template loaded, initializing worker...');
-        
-        await new Promise((resolve, reject) => {
-            const timeoutId = setTimeout(() => {
-                reject(new Error('Worker initialization timeout'));
-            }, 5000);
+    // Database schema definition
+    // Add after populateDatabase function
+    function analyzeGoals(goals) {
+        const patterns = {
+            language: 0,
+            articulation: 0,
+            fluency: 0,
+            voice: 0,
+            pragmatic: 0,
+            cognitive: 0,
+            executive: 0
+        };
 
-            const messageHandler = (e) => {
-                if (e.data.type === 'initialized') {
-                    clearTimeout(timeoutId);
-                    pdfWorker.removeEventListener('message', messageHandler);
-                    resolve();
+        const domainKeywords = {
+            language: ['vocabulary', 'grammar', 'syntax', 'comprehension', 'expression'],
+            articulation: ['sound', 'pronunciation', 'phonology', 'intelligibility'],
+            fluency: ['stuttering', 'rhythm', 'rate', 'fluency'],
+            voice: ['vocal', 'resonance', 'pitch', 'loudness'],
+            pragmatic: ['social', 'conversation', 'interaction', 'nonverbal'],
+            cognitive: ['memory', 'attention', 'processing', 'problem-solving'],
+            executive: ['planning', 'organization', 'self-regulation', 'metacognition']
+        };
+
+        goals.forEach(goal => {
+            const text = goal.text.toLowerCase();
+            Object.entries(domainKeywords).forEach(([domain, keywords]) => {
+                if (keywords.some(keyword => text.includes(keyword))) {
+                    patterns[domain]++;
                 }
-            };
-
-            pdfWorker.addEventListener('message', messageHandler);
-            pdfWorker.postMessage({ 
-                type: 'init',
-                templateData: base64Template
             });
         });
 
-        console.log('Worker initialized successfully');
-    } catch (error) {
-        console.error('Failed to initialize worker with template:', error);
-        throw error;
+        return patterns;
     }
-}
 
-// Handle messages from PDF Worker
-async function handleWorkerMessage(e) {
-    const { type, data, error } = e.data;
-
-    switch (type) {
-        case 'initialized':
-            console.log('PDF Worker initialized with template');
-            break;
-            
-        case 'previewGenerated':
-            try {
-                await updatePdfPreview(data);
-            } finally {
-                hideLoading();
-            }
-            break;
-            
-        case 'error':
-            console.error('PDF Worker error:', error);
-            hideLoading();
-            break;
-    }
-}
-
-// Show/hide loading indicator
-function showLoading() {
-    previewLoading.classList.add('active');
-}
-
-function hideLoading() {
-    previewLoading.classList.remove('active');
-}
-
-// Debounced preview update
-function debouncedUpdatePreview() {
-    clearTimeout(previewUpdateTimeout);
-    previewUpdateTimeout = setTimeout(() => {
-        showLoading();
-        generatePreview();
-    }, 250);
-}
-
-// Generate preview data
-function generatePreview() {
-    const clientName = clientNameInput.value;
-    const planDate = planDateInput.value ? new Date(planDateInput.value).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
-    const dob = dobInput.value ? new Date(dobInput.value) : null;
-    const frequency = frequencyInput.value;
-    const duration = durationInput.value;
-    const language = languageSelect.value;
+    // Define database schema with an incremented version number
+    db.version(5).stores({
+        categories: 'id, name',
+        goals: 'id, category, text, domain, complexity',
+        sampleText: 'id, category, text',
+        interventionTemplates: 'id, content, type, domain',
+        categoryDescriptions: 'id, category, description',
+        assessmentInfo: 'id, domain, description, approach'
+    });
     
-    let ageString = '';
-    if (planDate && dob) {
-        const planDateTime = new Date(planDateInput.value);
-        const years = planDateTime.getFullYear() - dob.getFullYear();
-        const months = planDateTime.getMonth() - dob.getMonth();
-        ageString = `${years} years, ${months} months`;
+        // Add assessment information population
+        async function populateAssessmentInfo() {
+            const assessmentData = [
+                {
+                    id: 1,
+                    domain: 'comprehensive',
+                    description: 'Based on thorough standardized and informal assessments',
+                    approach: 'Multimodal evaluation incorporating both clinical observation and structured testing'
+                },
+                {
+                    id: 2,
+                    domain: 'functional',
+                    description: 'Analysis of real-world communication needs',
+                    approach: 'Assessment of daily communication challenges and opportunities'
+                },
+                {
+                    id: 3,
+                    domain: 'cognitive',
+                    description: 'Evaluation of supporting cognitive skills',
+                    approach: 'Assessment of executive functioning and cognitive communication abilities'
+                }
+            ];
+            await db.assessmentInfo.bulkAdd(assessmentData);
+        }
+
+        // Add category descriptions population
+        async function populateCategoryDescriptions() {
+            const categoryDescriptionsData = [
+                {
+                    id: 1,
+                    category: 'articulation',
+                    description: `Articulation goals are centered on improving the clarity of speech sounds and the precision of pronunciation. 
+                    These goals typically involve exercises to correct tongue placement, strengthen the muscles used in speech, 
+                    and enhance overall intelligibility in conversational speech. Specific tasks may include reducing tongue protrusion, 
+                    improving labial seals (the ability to close lips fully), correcting specific sound production such as lingual alveolar 
+                    sounds like /t, d, n/, and decreasing errors like final consonant deletion and velar assimilation.`
+                },
+                {
+                    id: 2,
+                    category: 'attention',
+                    description: `Attention goals focus on enhancing the ability to maintain focus and engagement during tasks and conversations. 
+                    These are crucial for effective communication and learning in therapy settings and real-world interactions. 
+                    Typical objectives include consistently responding to one's name, participating in turn-taking activities, 
+                    improving the capacity to follow multi-step directions, and increasing the duration and quality of attention 
+                    during less preferred or adult-directed tasks.`
+                },
+                {
+                    id: 3,
+                    category: 'executive',
+                    description: `Executive functioning goals aim to boost higher-level cognitive skills that influence communication, 
+                    such as working memory, problem-solving, planning, and sequencing. Improving these skills helps clients better 
+                    manage and organize their thoughts and actions, particularly in complex communicative situations. Goals often include 
+                    sequencing picture scenes or steps in a process, making inferences and improving problem-solving abilities, 
+                    organizing thoughts coherently when recounting events or stories, and prioritizing tasks and managing time 
+                    effectively during communication tasks.`
+                },
+                {
+                    id: 4,
+                    category: 'expressive',
+                    description: `Expressive language goals target the enhancement of spoken language abilities. This includes increasing 
+                    vocabulary, sentence length, grammatical accuracy, and the ability to express thoughts, feelings, and ideas more clearly. 
+                    Objectives might involve expanding the variety and complexity of words used in conversation, formulating sentences that 
+                    are both age-appropriate and grammatically correct, and using language for different functions such as requesting, 
+                    narrating, or explaining.`
+                },
+                {
+                    id: 5,
+                    category: 'fluency',
+                    description: `Fluency goals focus on smoothing the flow of speech. This category often addresses issues such as stuttering 
+                    or cluttering, where the flow of speech may be interrupted by repetitions, prolongations, or unnecessary fillers. 
+                    Goals here might include using techniques like slow speech, light contact, and easy onset to manage and reduce disfluencies, 
+                    and discriminating between "smooth" and "bumpy" speech to increase self-awareness of fluency issues.`
+                },
+                {
+                    id: 6,
+                    category: 'pragmatic',
+                    description: `Pragmatic goals aim to enhance social communication skills. This includes improving the use of language in 
+                    social contexts, such as knowing when and how to use polite forms, understanding and using body language, and improving 
+                    conversational skills. Objectives in this category could involve identifying and using appropriate language in different 
+                    social situations, understanding and expressing emotions through language, and enhancing problem-solving skills in social interactions.`
+                },
+                {
+                    id: 7,
+                    category: 'receptive',
+                    description: `Receptive language goals focus on improving the ability to understand and process language. These goals ensure 
+                    that individuals can follow conversations, comprehend instructions, and make sense of the information they receive through 
+                    listening or reading. Common goals include enhancing the ability to follow spoken directions of increasing complexity, 
+                    improving comprehension of questions and stories, and increasing the capacity to recognize and understand vocabulary and concepts.`
+                }
+            ];
+            await db.categoryDescriptions.bulkAdd(categoryDescriptionsData);
+        }
+    
+        // Enhance the intro text generation
+        // Update the generateIntroText function for better content structure
+            function generateIntroText(patterns, clientName) {
+                const dominantDomains = Object.entries(patterns)
+                    .filter(([_, count]) => count > 0)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 4)
+                    .map(([domain]) => domain);
+            const domainDescriptions = {
+                language: 'receptive-expressive language development',
+                articulation: 'speech sound production and intelligibility',
+                fluency: 'speech fluency and rhythm patterns',
+                voice: 'voice quality and resonance',
+                pragmatic: 'social communication and pragmatic language',
+                cognitive: 'cognitive-communication abilities',
+                executive: 'executive functioning and self-regulation'
+            };
+            
+            // Get more detailed descriptions for the dominant domains
+            const focusAreas = dominantDomains.map(d => domainDescriptions[d]).join(', ');
+            
+            // Create a more comprehensive introduction
+            return `
+                ${clientName} was evaluated through comprehensive diagnostic assessment procedures 
+                including standardized testing, clinical observation, and analysis of functional 
+                communication needs. Based on the evaluation results, this intervention plan has 
+                been developed to address ${clientName}'s needs in ${focusAreas}.
+                
+                This intervention plan is designed to target specific areas of communication development
+                through evidence-based therapeutic approaches. The goals outlined in this plan are
+                structured to build progressively on ${clientName}'s current abilities, with regular
+                assessment of progress to ensure optimal outcomes. Therapy will incorporate a variety
+                of modalities including direct instruction, guided practice, and naturalistic
+                communication opportunities to promote generalization of skills across different
+                contexts and environments.
+        `;
     }
-
-    const previewData = {
-        clientInfo: {
-            name: clientName,
-            planDate,
-            dob: dob ? dob.toLocaleDateString() : '',
-            age: ageString,
-            frequency,
-            duration,
-            language
-        },
-        goals: currentGoals,
-        summary: document.getElementById('planSummary')?.querySelector('#summaryText')?.textContent
-    };
-
-    const cacheKey = JSON.stringify(previewData);
-    pdfWorker.postMessage({ type: 'generatePreview', data: previewData, cacheKey });
-}
-
-// Update PDF preview using PDF.js
-async function updatePdfPreview(pdfBytes) {
-    try {
-        // Clear existing preview
-        previewDocument.innerHTML = '';
-        document.getElementById('previewTabs').innerHTML = '';
-
-        // Load PDF document
-        const pdfData = new Uint8Array(pdfBytes);
-        const loadingTask = pdfjsLib.getDocument({ data: pdfData });
-        const pdf = await loadingTask.promise;
-        currentPreviewPdf = pdf;
-
-        // Calculate scale to fit preview area
-        const previewArea = document.querySelector('.preview-area');
-        const firstPage = await pdf.getPage(1);
-        const viewport = firstPage.getViewport({ scale: 1.0 });
+    // Add implementation strategy generation
+    function generateImplementationStrategy(clientName, patterns) {
+        const strategies = [];
+        if (patterns.language > 0) {
+            strategies.push(`Language development activities will be integrated throughout sessions, focusing on both comprehension and expression in natural communication contexts.`);
+        }
+        if (patterns.articulation > 0) {
+            strategies.push(`Speech production exercises will utilize a systematic approach, incorporating visual and tactile cues to support accurate sound production.`);
+        }
+        if (patterns.pragmatic > 0) {
+            strategies.push(`Social communication skills will be addressed through structured activities and real-world practice opportunities.`);
+        }
+        if (patterns.executive > 0) {
+            strategies.push(`Executive functioning support will be embedded within activities to enhance planning, organization, and self-monitoring skills.`);
+        }
+        if (patterns.receptive > 0) {
+            strategies.push(`Receptive language activities will focus on improving comprehension of increasingly complex language concepts and following multi-step directions.`);
+        }
+        if (patterns.attention > 0) {
+            strategies.push(`Attention-focused strategies will be incorporated to improve sustained focus during communication tasks and increase engagement in therapeutic activities.`);
+        }
+    
+        return `
+                To achieve these objectives, ${clientName}'s intervention plan incorporates:
+                ${strategies.join(' ')}
         
-        const containerHeight = previewArea.clientHeight - 20;
-        const heightScale = containerHeight / viewport.height;
+                Progress will be monitored through ongoing assessment and data collection, allowing for dynamic 
+                adjustment of therapeutic strategies to ensure optimal outcomes. Parent/caregiver education and 
+                involvement will be emphasized to support carryover of skills to home and community settings.
+                
+                Therapy sessions will utilize a combination of structured activities and naturalistic 
+                communication opportunities to promote generalization of skills. Materials and activities 
+                will be selected based on ${clientName}'s interests and developmental level to maximize 
+                engagement and motivation. Regular progress updates will be provided to track advancement 
+                toward the established goals.
+        `;
+    }
+    function generateLongTermObjectives(patterns, clientName, selectedCategories = []) {
+        const objectives = [];
+        const thresholds = {
+            // Domain thresholds
+            language: 2,
+            articulation: 2,
+            fluency: 1,
+            voice: 1,
+            pragmatic: 2,
+            cognitive: 2,
+            executive: 2
+        };
+    
         
-        const containerWidth = previewArea.clientWidth - 20;
-        const widthScale = containerWidth / viewport.width;
+        // Add objectives based on selected categories
+        if (selectedCategories.includes('articulation')) {
+            objectives.push(`${clientName} will achieve improved speech intelligibility through accurate production of age-appropriate speech sounds.`);
+        }
+        if (selectedCategories.includes('executive')) {
+            objectives.push(`To improve executive functioning and self-regulation skills`);
+        }
+        if (selectedCategories.includes('pragmatic')) {
+            objectives.push(`To enhance social communication skills and pragmatic language abilities`);
+        }
+        if (selectedCategories.includes('attention')) {
+            objectives.push(`To improve attention and auditory processing skills`);
+        }
+        if (selectedCategories.includes('expressive')) {
+            objectives.push(`${clientName} will demonstrate age-appropriate expressive language skills for functional communication needs.`);
+        }
+        if (selectedCategories.includes('fluency')) {
+            objectives.push(`To improve speech fluency and communication confidence`);
+        }
+        if (selectedCategories.includes('receptive')) {
+            objectives.push(`${clientName} will demonstrate age-appropriate receptive language skills for functional communication needs.`);
+        }
         
-        const scale = Math.min(heightScale, widthScale) * 0.98;
-
-        // Create tab container if it doesn't exist
-        const tabsContainer = document.getElementById('previewTabs');
-        if (!tabsContainer) {
-            const tabs = document.createElement('div');
-            tabs.id = 'previewTabs';
-            previewArea.insertBefore(tabs, previewDocument);
-        }
-
-        // Render each page
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-            const page = await pdf.getPage(pageNum);
-            const scaledViewport = page.getViewport({ scale });
-
-            // Create page container
-            const pageContainer = document.createElement('div');
-            pageContainer.className = 'preview-document';
-            pageContainer.style.display = 'none';
-            pageContainer.style.width = `${scaledViewport.width}px`;
-            pageContainer.style.height = `${scaledViewport.height}px`;
-            pageContainer.style.margin = '0 auto';
-            pageContainer.dataset.pageNumber = pageNum;
-
-            // Create canvas
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            canvas.width = scaledViewport.width;
-            canvas.height = scaledViewport.height;
-
-            // Render PDF page
-            await page.render({
-                canvasContext: context,
-                viewport: scaledViewport
-            }).promise;
-
-            pageContainer.appendChild(canvas);
-            previewDocument.appendChild(pageContainer);
-
-            // Create tab
-            const tab = document.createElement('button');
-            tab.className = 'preview-tab';
-            tab.textContent = `Page ${pageNum}`;
-            tab.dataset.pageNumber = pageNum;
-            tab.onclick = () => switchPreviewPage(pageNum - 1);
-            document.getElementById('previewTabs').appendChild(tab);
-        }
-
-        // Show first page and activate first tab
-        switchPreviewPage(0);
-    } catch (error) {
-        console.error('Error updating PDF preview:', error);
-    }
-}
-
-// Function to switch between preview pages
-function switchPreviewPage(pageIndex) {
-    // Update tabs
-    document.querySelectorAll('.preview-tab').forEach((tab, index) => {
-        if (index === pageIndex) {
-            tab.classList.add('active');
-        } else {
-            tab.classList.remove('active');
-        }
-    });
-
-    // Update pages
-    document.querySelectorAll('.preview-document').forEach((page, index) => {
-        if (index === pageIndex) {
-            page.style.display = 'block';
-            page.classList.add('active');
-        } else {
-            page.style.display = 'none';
-            page.classList.remove('active');
-        }
-    });
-
-    // Scroll the active tab into view
-    const activeTab = document.querySelector('.preview-tab.active');
-    if (activeTab) {
-        activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-    }
-}
-
-// Update preview panel
-function updatePreview() {
-    showLoading();
-    // Clear existing preview
-    previewDocument.innerHTML = '';
-    document.getElementById('previewTabs').innerHTML = '';
-    debouncedUpdatePreview();
-}
-
-// Helper function to validate required inputs
-function validateInputs() {
-    const requiredInputs = {
-        'Client Name': clientNameInput.value,
-        'Frequency': frequencyInput.value,
-        'Duration': durationInput.value,
-        'Language': languageSelect.value
-    };
-
-    const missing = Object.entries(requiredInputs)
-        .filter(([_, value]) => !value)
-        .map(([name]) => name);
-
-    if (missing.length > 0) {
-        throw new Error(`Please fill in the following required fields: ${missing.join(', ')}`);
-    }
-
-    if (selectedCategories.size === 0) {
-        throw new Error('Please select at least one goal category');
-    }
-
-    if (currentGoals.shortTerm.length === 0) {
-        throw new Error('Please select at least one short-term objective');
-    }
-}
-
-// Helper function to capitalize first letter of each word
-function capitalizeWords(str) {
-    return str.split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-}
-
-// Generate summary using enhanced hybrid approach
-async function generatePlanSummary() {
-    try {
-        // Validate inputs first
-        validateInputs();
-
-        const selectedCats = Array.from(selectedCategories);
-        const allGoals = [...currentGoals.longTerm, ...currentGoals.shortTerm];
-        const clientName = clientNameInput.value;
-        const frequency = frequencyInput.value;
-        const duration = durationInput.value;
-        const language = languageSelect.value;
-
-        // Rule-based analysis of goals
-        const goalsByCategory = {};
-        selectedCats.forEach(category => {
-            goalsByCategory[category] = allGoals.filter(g => g.category === category);
+        Object.entries(patterns).forEach(([domain, count]) => {
+            if (count >= thresholds[domain]) {
+                switch(domain) {
+                    case 'language':
+                        objectives.push(`${clientName} will demonstrate age-appropriate receptive and expressive language skills for functional communication needs.`);
+                        break;
+                    case 'articulation':
+                        objectives.push(`${clientName} will achieve improved speech intelligibility through accurate production of age-appropriate speech sounds.`);
+                        break;
+                    case 'fluency':
+                        objectives.push('To improve speech fluency and communication confidence');
+                        break;
+                    case 'voice':
+                        objectives.push('To develop appropriate vocal quality and resonance');
+                        break;
+                    case 'pragmatic':
+                        objectives.push('To enhance social communication skills and pragmatic language abilities');
+                        break;
+                    case 'cognitive':
+                        objectives.push('To strengthen cognitive-communication skills');
+                        break;
+                    case 'executive':
+                        objectives.push('To improve executive functioning and self-regulation skills');
+                        break;
+                }
+            }
         });
-
-        // Generate category-specific insights with enhanced descriptions
-        const categoryInsights = [];
-        for (const [category, goals] of Object.entries(goalsByCategory)) {
-            if (goals.length > 0) {
-                const capitalizedCategory = capitalizeWords(category);
-                const description = categoryDescriptions[category];
-                const insight = `For ${capitalizedCategory}, the plan includes ${goals.length} specific objectives targeting key areas of development. ${description}`;
-                categoryInsights.push(insight);
-            }
-        }
-
-        // Use semantic analysis if USE model is available
-        let semanticInsights = [];
-        if (useModel) {
-            try {
-                // Get embeddings for all goals
-                const goalTexts = allGoals.map(g => g.text);
-                const embeddings = await useModel.embed(goalTexts);
+    
+        return objectives;
+    }
+    // Function to populate database (if empty)
+    async function populateDatabase() {
+        try {
+            const categoriesCount = await db.categories.count();
+            
+            if (categoriesCount === 0) {
+                // Load and parse goals.json
+                const response = await fetch('data/goals.json');
+                if (!response.ok) throw new Error('Failed to load goals.json');
                 
-                // Enhanced semantic analysis
-                const embeddingArray = await embeddings.array();
-                const similarities = [];
-                const relatedGoals = [];
+                const goalsData = await response.json();
                 
-                for (let i = 0; i < embeddingArray.length; i++) {
-                    for (let j = i + 1; j < embeddingArray.length; j++) {
-                        const similarity = tf.tensor1d(embeddingArray[i])
-                            .dot(tf.tensor1d(embeddingArray[j]))
-                            .dataSync()[0];
-                        similarities.push(similarity);
-                        
-                        if (similarity > 0.8) {
-                            relatedGoals.push([allGoals[i].category, allGoals[j].category]);
-                        }
-                    }
-                }
-
-                // Generate insights about goal relationships
-                if (relatedGoals.length > 0) {
-                    const uniquePairs = new Set(relatedGoals.map(pair => pair.sort().join('-')));
-                    uniquePairs.forEach(pair => {
-                        const [cat1, cat2] = pair.split('-');
-                        const capitalizedCat1 = capitalizeWords(cat1);
-                        const capitalizedCat2 = capitalizeWords(cat2);
-                        if (cat1 !== cat2) {
-                            semanticInsights.push(`The plan integrates complementary goals between ${capitalizedCat1} and ${capitalizedCat2}`);
-                        }
-                    });
-                }
-
-                // Cleanup tensors
-                embeddings.dispose();
-            } catch (error) {
-                console.error('Error in semantic analysis:', error);
-            }
-        }
-
-        // Progress monitoring statement with semantic variation
-        const progressStatements = [
-            "Formal and informal measures will be utilized throughout intervention to establish goals and monitor progress.",
-            "Progress will be tracked through a combination of formal assessments and informal observations during therapy sessions.",
-            "Ongoing evaluation using both standardized measures and clinical observations will guide goal adjustment and progress monitoring.",
-            "Treatment progress will be assessed through systematic data collection and periodic formal evaluations."
-        ];
-
-        // Use USE model to select most appropriate progress statement if available
-        let progressStatement = progressStatements[0];
-        if (useModel) {
-            try {
-                const embeddings = await useModel.embed(progressStatements);
-                const contextEmbed = await useModel.embed([categoryInsights.join(' ')]);
-                
-                const similarities = await Promise.all(progressStatements.map(async (_, i) => {
-                    const similarity = tf.tensor1d((await embeddings.array())[i])
-                        .dot(tf.tensor1d((await contextEmbed.array())[0]))
-                        .dataSync()[0];
-                    return similarity;
+                // Extract unique categories and create category records
+                const uniqueCategories = [...new Set(goalsData.map(goal => goal.category))];
+                const categories = uniqueCategories.map((name, index) => ({
+                    id: index + 1,
+                    name: name
                 }));
-
-                const bestIndex = similarities.indexOf(Math.max(...similarities));
-                progressStatement = progressStatements[bestIndex];
-
-                embeddings.dispose();
-                contextEmbed.dispose();
-            } catch (error) {
-                console.error('Error selecting progress statement:', error);
+                
+                // Batch insert categories
+                await db.categories.bulkAdd(categories);
+                
+                // Prepare and insert goals
+                const goals = goalsData.map((goal, index) => ({
+                    id: index + 1,
+                    category: goal.category,
+                    text: goal.text,
+                    domain: goal.domain || 'general',
+                    complexity: goal.complexity || 'medium'
+                }));
+                
+                await db.goals.bulkAdd(goals);
+                
+                console.log('Database successfully populated');
+                await populateAssessmentInfo();
+                await populateCategoryDescriptions();
             }
+        } catch (error) {
+            console.error('Error populating database:', error);
+            throw error;
         }
-
-        // Combine insights into structured summary
-        const summaryParts = [
-            `Treatment Summary for ${clientName}:`,
-            `\nIntervention Plan:`,
-            `• Speech therapy services will be provided ${frequency} times per week for ${duration} minutes.`,
-            `• Sessions will be conducted in ${language}.`,
-            `\nPrimary Focus Areas:`,
-            `• ${selectedCats.map(cat => capitalizeWords(cat)).join('\n• ')}`,
-            `\nTreatment Approach:`,
-            categoryInsights.map(insight => `• ${insight}.`).join('\n'),
-            semanticInsights.length > 0 ? `\nIntegrated Approach:` : '',
-            semanticInsights.map(insight => `• ${insight}.`).join('\n'),
-            `\nProgress Monitoring:`,
-            `• ${progressStatement}`
-        ];
-
-        const summary = summaryParts.filter(Boolean).join('\n');
-
-        // Update UI with summary
-        updatePreviewWithSummary(summary);
-    } catch (error) {
-        console.error('Error generating summary:', error);
-        alert(error.message || 'Failed to generate summary. Please try again.');
     }
-}
 
-// Helper function to update preview with summary
-function updatePreviewWithSummary(summary) {
-    // Force a preview update to ensure proper page structure
-    updatePreview();
+    const appContainer = document.getElementById('app-container');
+
+    // Step 1: Client Information
+    function showClientInfo() {
+        const section = document.createElement('div');
+        section.className = 'client-info-section';
     
-    // Create new page for summary
-    const summaryPage = createNewPage();
-    const summaryContainer = summaryPage.querySelector('.preview-content-container');
-    const summarySection = document.createElement('div');
-    summarySection.id = 'planSummary';
-    summarySection.className = 'preview-section';
-    summarySection.innerHTML = `
-        <h3>Plan Summary</h3>
-        <p id="summaryText" style="white-space: pre-line;">${summary}</p>
-    `;
-    summaryContainer.appendChild(summarySection);
+        const form = document.createElement('form');
 
-    // Add summary page to preview
-    previewDocument.appendChild(summaryPage);
-
-    // Create new tab for summary page
-    const pageIndex = previewDocument.children.length - 1;
-    const tab = document.createElement('button');
-    tab.className = 'preview-tab';
-    tab.textContent = `Page ${pageIndex + 1}`;
-    tab.onclick = () => switchPreviewPage(pageIndex);
-    document.getElementById('previewTabs').appendChild(tab);
-}
-
-// Load goals from JSON file into IndexedDB
-async function loadGoalBank() {
-    try {
-        console.log('Fetching goals from JSON file...');
-        const response = await fetch('data/goals.json');
+        // Add logo to the top of the client info page
+        const logoContainer = document.createElement('div');
+        logoContainer.className = 'logo-container';
+ 
+        logoContainer.innerHTML = `<img src="logo.png" alt="IPLC Logo" class="logo">`;
+        section.appendChild(logoContainer);
         
-        if (!response.ok) {
-            throw new Error('Failed to fetch goals data');
-        }
-
-        const goals = await response.json();
-        console.log(`Received ${goals.length} goals from JSON file`);
-
-        if (!Array.isArray(goals) || goals.length === 0) {
-            throw new Error('No goals found in data file');
-        }
-
-        console.log('Loading goals into IndexedDB...');
-        await goalDB.loadGoalBank(goals);
-        console.log('Goals loaded successfully');
-
-        // Update UI to show loaded goals
-        const categories = [...new Set(goals.map(g => g.category))];
-        console.log('Available categories:', categories);
-
-        // Check checkboxes for available categories
-        categories.forEach(category => {
-            const checkbox = document.querySelector(`input[value="${category}"]`);
-            if (checkbox) {
-                checkbox.disabled = false;
-            }
-        });
-
-        // Show initial goals
-        await updateGoalsList();
-    } catch (error) {
-        console.error('Error loading goal bank:', error);
-        
-        // Show error message to user
-        const goalsListElement = document.getElementById('goalsList');
-        goalsListElement.innerHTML = `
-            <div class="error-message">
-                Failed to load goals: ${error.message}
-                <br><br>Please ensure the goals data file exists at:
-                <pre>data/goals.json</pre>
+        form.className = 'client-info';
+        form.innerHTML = `
+            <h2 class="client-info-title">Client Information</h2>
+            <div>
+                <label for="clientName">Client Name:</label>
+                <input type="text" id="clientName" name="clientName" required>
+            </div>
+            <div>
+                <label for="dob">Date of Birth:</label>
+                <input type="date" id="dob" name="dob" required>
+            </div>
+            <div>
+                <label for="planDate">Plan Date:</label>
+                <input type="date" id="planDate" name="planDate" required>
+            </div>
+            <div>
+                <input type="hidden" id="ageYears" name="ageYears">
+                <input type="hidden" id="ageMonths" name="ageMonths">
+                <label for="ageDisplay">Age:</label>
+                <input type="text" id="ageDisplay" name="ageDisplay" readonly>
+            </div>
+            <div>
+                <label for="frequency">Sessions per Week:</label>
+                <input type="number" id="frequency" name="frequency" min="1" max="7" required>
+            </div>
+            <div>
+                <label for="sessionDuration">Session Duration:</label>
+                <select id="sessionDuration" name="sessionDuration" required>
+                    <option value="">Select duration</option>
+                    <option value="15">15 minutes</option>
+                    <option value="20">20 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="60">1 hour</option>
+                    <option value="120">2 hours</option>
+                </select>
+            </div>
+            <div class="button-group">
+                <button type="button" id="nextButton">Next: Select Categories</button>
             </div>
         `;
-
-        // Disable category checkboxes
-        document.querySelectorAll('.goal-categories input[type="checkbox"]').forEach(checkbox => {
-            checkbox.disabled = true;
-        });
+    // Add to DOM before getting elements
+    section.appendChild(form);
+    appContainer.innerHTML = '';
+    appContainer.appendChild(section);
+    // Function to calculate age based on DOB and plan date
+    function calculateAge() {
+        const dob = dobInput.value;
+        const planDate = planDateInput.value;
+        
+        if (dob && planDate) {
+            const dobDate = new Date(dob);
+            const planDateTime = new Date(planDate);
+            const diffTime = planDateTime - dobDate;
+            const diffDays = diffTime / (1000 * 60 * 60 * 24);
+            const years = Math.floor(diffDays / 365.25);
+            const remainingDays = diffDays % 365.25;
+            const months = Math.floor(remainingDays / 30.44);
+            
+            ageYearsInput.value = years;
+            ageMonthsInput.value = months;
+            ageDisplay.value = `${years} years, ${months} months`;
+        }
     }
-}
-
-// Update tabs based on selected categories
-function updateTabs() {
-    if (!goalsTabsElement) return;
+    // Add event listeners for automatic age calculation
+    const dobInput = document.getElementById('dob');
+    const planDateInput = document.getElementById('planDate');
+    const ageYearsInput = document.getElementById('ageYears');
+    const ageMonthsInput = document.getElementById('ageMonths');
+    const ageDisplay = document.getElementById('ageDisplay');
+    const clientNameInput = document.getElementById('clientName');
+    const frequencyInput = document.getElementById('frequency');
     
-    goalsTabsElement.innerHTML = '';
+    // Add event listener for the next button
+    const nextButton = document.getElementById('nextButton');
+    nextButton.addEventListener('click', showCategorySelection);
     
-    // Create "All goals" tab
-    const allTab = document.createElement('button');
-    allTab.className = `goals-tab ${activeTab === null ? 'active' : ''}`;
-    allTab.textContent = 'All goals';
-    allTab.onclick = async () => {
-        activeTab = null;
-        document.querySelectorAll('.goals-tab').forEach(tab => tab.classList.remove('active'));
-        allTab.classList.add('active');
-        await updateGoalsList();
-    };
-    goalsTabsElement.appendChild(allTab);
+    // Add event listeners to trigger age calculation when either date changes
+    dobInput.addEventListener('change', calculateAge);
+    planDateInput.addEventListener('change', calculateAge);
     
-    // Create tab for each selected category
-    selectedCategories.forEach(category => {
-        const tab = document.createElement('button');
-        tab.className = `goals-tab ${activeTab === category ? 'active' : ''}`;
-        tab.textContent = capitalizeWords(category);
-        tab.onclick = async () => {
-            activeTab = category;
-            document.querySelectorAll('.goals-tab').forEach(tab => tab.classList.remove('active'));
-            tab.classList.add('active');
-            await updateGoalsList();
-        };
-        goalsTabsElement.appendChild(tab);
-    });
-}
-
-// UI Event Handlers
-function initializeEventListeners() {
-    if (!saveAsPdfButton) {
-        console.error('Save PDF button not found in DOM');
-    } else {
-        saveAsPdfButton.addEventListener('click', exportToPdf);
-    }
-
-    // Category checkboxes
-    document.querySelectorAll('.goal-categories input[type="checkbox"]').forEach(checkbox => {
-        checkbox.addEventListener('change', async (e) => {
-            const category = e.target.value;
-            if (e.target.checked) {
-                selectedCategories.add(category);
-                // Add long term objective for the category
-                currentGoals.longTerm.push({
-                    category,
-                    text: `To improve overall ${category.toLowerCase()}.`
-                });
-            } else {
-                selectedCategories.delete(category);
-                // Remove long term objective for the category
-                const index = currentGoals.longTerm.findIndex(g => 
-                    g.text === `To improve overall ${category.toLowerCase()}.`
-                );
-                if (index !== -1) {
-                    currentGoals.longTerm.splice(index, 1);
-                }
+    // Add event listeners to update client state when form values change
+    document.querySelectorAll('input, select').forEach(input => input.addEventListener('change', updateClientState));
+}    // Step 2: Category Selection
+    async function showCategorySelection() {
+        const categories = await db.categories.toArray();
+        
+        const section = document.createElement('div');
+        section.className = 'category-selection';
+    
+        const heading = document.createElement('h2');
+        heading.textContent = 'Select Categories';
+        section.appendChild(heading);
+    
+        const grid = document.createElement('div');
+        grid.className = 'category-grid';
+    
+        categories.forEach(category => {
+            const card = document.createElement('div');
+            card.className = 'category-card';
+            
+            // Format category names properly
+            let displayName = category.name;
+            switch(category.name.toLowerCase()) {
+                case 'articulation':
+                    displayName = 'Articulation';
+                    break;
+                case 'executive':
+                    displayName = 'Executive functioning';
+                    break;
+                case 'pragmatic':
+                    displayName = 'Pragmatics';
+                    break;
+                case 'attention':
+                    displayName = 'Attention';
+                    break;
+                case 'expressive':
+                    displayName = 'Expressive language skills';
+                    break;
+                case 'fluency':
+                    displayName = 'Fluency';
+                    break;
+                case 'receptive':
+                    displayName = 'Receptive language skills';
+                    break;
             }
-            updateTabs();
-            await updateGoalsList();
-            updatePreview();
+            card.textContent = displayName;
+            card.dataset.category = category.name;
+            
+            card.addEventListener('click', () => {
+                card.classList.toggle('selected');
+            });
+            
+            grid.appendChild(card);
         });
-    });
+    
+        section.appendChild(grid);
+    
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'button-group';
+    
+        const backButton = document.createElement('button');
+        backButton.textContent = 'Back to Client Info';
+        backButton.className = 'secondary';
+        backButton.addEventListener('click', showClientInfo);
+    
+        const nextButton = document.createElement('button');
+        nextButton.textContent = 'Next: Select Goals';
+        nextButton.addEventListener('click', () => {
+            const selectedCategories = Array.from(document.querySelectorAll('.category-card.selected'))
+                .map(card => card.dataset.category);
+    
+            if (selectedCategories.length > 0) {
+                showGoalSelection(selectedCategories);
+            } else {
+                alert('Please select at least one category');
+            }
+        });
+    
+        buttonGroup.appendChild(backButton);
+        buttonGroup.appendChild(nextButton);
+        section.appendChild(buttonGroup);
+    
+        appContainer.innerHTML = '';
+        appContainer.appendChild(section);
+    }
+    
+    // Step 3: Goal Selection
+    async function showGoalSelection(selectedCategories) {
+        const section = document.createElement('div');
+        section.className = 'goal-selection';
+    
+        const heading = document.createElement('h2');
+        heading.textContent = 'Select Goals';
+        section.appendChild(heading);
+    
+        const goalList = document.createElement('ul');
+        goalList.className = 'goal-list';
 
-    // Search input
-    let searchTimeout;
-    goalSearchInput.addEventListener('input', (e) => {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(async () => {
-            await updateGoalsList();
-        }, 300);
-    });
-
-    // Demographics inputs
-    [clientNameInput, planDateInput, dobInput, frequencyInput, durationInput, languageSelect].forEach(input => {
-        input.addEventListener('input', updatePreview);
-    });
-}
-
-// Update goals list based on search and filters
-async function updateGoalsList() {
-    try {
-        const query = goalSearchInput.value;
-        let categories = Array.from(selectedCategories);
+        // Create tabs for categories
+        const tabContainer = document.createElement('div');
+        tabContainer.className = 'category-tabs';
         
-        // Filter goals based on active tab
-        if (activeTab !== null) {
-            categories = [activeTab];
-        } else {
-            // Show all goals if "All goals" tab is active
-            categories = await goalDB.getCategories();
+        // Create content container for goals
+        const goalContentContainer = document.createElement('div');
+        goalContentContainer.className = 'goal-content-container';
+    
+        for (const category of selectedCategories) {
+            // Create tab for this category
+            const tab = document.createElement('div');
+          tab.className = 'category-tab';
+            tab.dataset.category = category;
+            
+            // Format category names properly
+            let displayName = category;
+            switch(category.toLowerCase()) {
+                case 'articulation':
+                    displayName = 'Articulation';
+                    break;
+                case 'executive':
+                    displayName = 'Executive functioning';
+                    break;
+                case 'pragmatic':
+                    displayName = 'Pragmatics';
+                    break;
+                case 'attention':
+                    displayName = 'Attention';
+                    break;
+                case 'expressive':
+                    displayName = 'Expressive language skills';
+                    break;
+                case 'fluency':
+                    displayName = 'Fluency';
+                    break;
+                case 'receptive':
+                    displayName = 'Receptive language skills';
+                    break;
+            }
+            tab.textContent = displayName;
+            tabContainer.appendChild(tab);
+            
+            // Create content div for this category
+            const categoryContent = document.createElement('div');
+            categoryContent.className = 'category-content';
+            categoryContent.dataset.category = category;
+            categoryContent.style.display = 'none'; // Hide initially
+    
+            const goals = await db.goals.where('category').equals(category).toArray();
+            
+            goals.forEach(goal => {
+                // Ensure goal text starts with lowercase "will"
+                goal.text = goal.text.replace(/^Will /, 'will ');
+                
+                if (goal.text !== 'Articulation goals' && goal.text !== 'Apraxia' && 
+                    goal.text !== 'Serial recall' && goal.text !== 'Identify what comes before versus after' && 
+                    goal.text !== 'Unscramble words' && goal.text !== 'Sort items by category' && 
+                    !goal.text.match(/^Regular |^Future |^Pronouns|^Irregular /)) {
+                    
+                      const li = document.createElement('li');
+    
+    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `goal-${goal.id}`;
+                    checkbox.value = goal.id;
+    
+                checkbox.dataset.category = category;
+        
+                    const label = document.createElement('label');
+                    label.htmlFor = `goal-${goal.id}`;
+                    label.textContent = goal.text;
+    
+    
+                    li.appendChild(checkbox);
+                    li.appendChild(label);
+                    categoryContent.appendChild(li);
+                }
+            });
+            
+            goalContentContainer.appendChild(categoryContent);
         }
         
-        let goals;
-        if (useModel && query) {
-            console.log('Using Universal Sentence Encoder for semantic search...');
-            const allGoals = await goalDB.searchGoals('', categories);
-            goals = await goalDB.searchWithTensorflow(query, allGoals, useModel);
-            // Filter out category goals
-            goals = goals.filter(goal => !goal.text.toLowerCase().includes('goals'));
-            console.log(`Found ${goals.length} goals using semantic search`);
-        } else {
-            console.log('Using regular text search...');
-            goals = await goalDB.searchGoals(query, categories);
-            // Filter out category goals
-            goals = goals.filter(goal => !goal.text.toLowerCase().includes('goals'));
-            console.log(`Found ${goals.length} goals using text search`);
+        // Make the first tab active
+        if (selectedCategories.length > 0) {
+            const firstTab = tabContainer.querySelector('.category-tab');
+            const firstContent = goalContentContainer.querySelector('.category-content');
+            if (firstTab && firstContent) {
+                firstTab.classList.add('active');
+                firstContent.style.display = 'block';
+            }
         }
-
-        if (goals.length === 0) {
-            goalsListElement.innerHTML = `
-                <div class="info-message">
-                    No goals found matching your criteria. Try adjusting your search or selecting different categories.
-                </div>
-            `;
+        
+        // Add tab click event listeners
+        tabContainer.querySelectorAll('.category-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Hide all content and deactivate all tabs
+                goalContentContainer.querySelectorAll('.category-content').forEach(content => {
+                    content.style.display = 'none';
+                });
+                tabContainer.querySelectorAll('.category-tab').forEach(t => {
+                    t.classList.remove('active');
+                });
+                
+                // Show selected content and activate tab
+                const category = tab.dataset.category;
+                goalContentContainer.querySelector(`.category-content[data-category="${category}"]`).style.display = 'block';
+                tab.classList.add('active');
+            });
+        }
+);
+    
+        section.appendChild(tabContainer);
+        section.appendChild(goalContentContainer);
+    
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'button-group';
+    
+        const backButton = document.createElement('button');
+        backButton.textContent = 'Back to Categories';
+        backButton.className = 'secondary';
+        backButton.addEventListener('click', () => showCategorySelection());
+    
+        const nextButton = document.createElement('button');
+        nextButton.textContent = 'Generate Summary';
+        nextButton.addEventListener('click', () => {
+            const selectedGoalsCount = document.querySelectorAll('input[type="checkbox"]:checked').length;
+            if (selectedGoalsCount > 0) {
+                updateClientState(); // Update client state before generating summary
+                generateSummary();
+            } else {
+                alert('Please select at least one goal');
+            }
+        });
+    
+        buttonGroup.appendChild(backButton);
+        buttonGroup.appendChild(nextButton);
+        section.appendChild(buttonGroup);
+    
+        appContainer.innerHTML = '';
+        appContainer.appendChild(section);
+    }
+    
+    /**
+     * Step 4: Generate Summary and Preview
+     */
+    // Update generateSummary function with enhanced styling and structure
+    async function generateSummary() {
+        console.log('Generating summary with client state:', clientState);
+        const {name: clientName, dob, ageYears, ageMonths, planDate, frequency } = clientState;
+        const selectedGoals = [];
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+        for (const checkbox of checkboxes) {
+            const goalId = checkbox.value;
+            const goal = await db.goals.get(parseInt(goalId));
+            // Add category to the goal object
+            goal.category = checkbox.dataset.category;
+            // Ensure goal text starts with lowercase "will"
+            goal.text = goal.text.replace(/^Will /, 'will ');
+            selectedGoals.push(goal);
+        }
+    
+        const patterns = analyzeGoals(selectedGoals);
+        const introText = generateIntroText(patterns, clientName);
+        
+        // Extract unique categories from selected goals
+        const selectedCategories = Array.from(new Set(selectedGoals.map(goal => goal.category)));
+        
+        const longTermObjectives = generateLongTermObjectives(patterns, clientName, selectedCategories);
+        const implementationText = generateImplementationStrategy(clientName, patterns);
+        
+        // Create the preview window
+        const previewWindow = window.open('', '_blank');
+        if (!previewWindow) {
+            alert('Please allow pop-ups to view the summary');
             return;
         }
 
-        renderGoalsList(goals);
-    } catch (error) {
-        console.error('Error updating goals list:', error);
-        goalsListElement.innerHTML = `
-            <div class="error-message">
-                Error searching goals: ${error.message}
-            </div>
-        `;
-    }
-}
+        // Create the HTML content for the preview window
+        const summaryHTML = `<!DOCTYPE html>
+<html lang="en" class="hyphenate">
 
-// Render goals in the UI
-function renderGoalsList(goals) {
-    goalsListElement.innerHTML = '';
-    
-    goals.forEach(goal => {
-        const goalElement = document.createElement('div');
-        goalElement.className = 'goal-item';
-        goalElement.innerHTML = `
-            <label class="checkbox-container">
-                <input type="checkbox" ${[...currentGoals.longTerm, ...currentGoals.shortTerm].some(g => g.text === goal.text) ? 'checked' : ''}>
-                <span class="checkbox-label">${goal.text}</span>
-            </label>
-        `;
-
-        const checkbox = goalElement.querySelector('input');
-        checkbox.addEventListener('change', async () => {
-            if (checkbox.checked) {
-                // Add to short term with formatted text
-                const clientName = clientNameInput.value.split(' ')[0]; // Get first name
-                const formattedText = `To improve overall ${goal.category.toLowerCase()} ${clientName} ${goal.text.toLowerCase()}.`;
-                currentGoals.shortTerm.push({
-                    ...goal,
-                    text: formattedText
-                });
-                await goalDB.addSelectedGoal(goal);
-            } else {
-                // Remove from appropriate array
-                const shortTermIndex = currentGoals.shortTerm.findIndex(g => 
-                    g.category === goal.category && g.text.includes(goal.text.toLowerCase())
-                );
-                
-                if (shortTermIndex !== -1) {
-                    currentGoals.shortTerm.splice(shortTermIndex, 1);
-                }
-                await goalDB.removeSelectedGoal(goal.id);
-            }
-            updatePreview();
-        });
-
-        goalsListElement.appendChild(goalElement);
-    });
-}
-
-// Helper function to create a new page
-function createNewPage() {
-    const page = document.createElement('div');
-    page.className = 'preview-document';
-    page.style.cssText = `
-        min-height: 1056px;
-        max-height: 1056px;
-        width: 816px;
-        margin: 0 auto;
-        overflow: hidden;
-        position: relative;
-    `;
-    page.innerHTML = `<div class="preview-content-container"></div>`;
-    return page;
-}
-
-// Export function uses html2pdf.js for final PDF generation
-async function exportToPdf() {
-    try {
-        showLoading();
-
-        // Create a container for the PDF content
-        const container = document.createElement('div');
-        container.style.visibility = 'hidden';
-        container.style.position = 'absolute';
-        container.style.left = '-9999px';
-        document.body.appendChild(container);
-
-        // Clone the current preview pages
-        const previewPages = document.querySelectorAll('.preview-document');
-        previewPages.forEach(page => {
-            const clonedPage = page.cloneNode(true);
-            // Remove any display:none styling
-            clonedPage.style.display = 'block';
-            container.appendChild(clonedPage);
-        });
-
-        // Configure html2pdf options
-        const opt = {
-            margin: [108, 54, 108, 126], // [top, right, bottom, left] in points (72 points = 1 inch)
-            filename: `${clientNameInput.value.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_intervention_plan.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { 
-                scale: 2,
-                useCORS: true,
-                letterRendering: true,
-                backgroundColor: '#ffffff'
-            },
-            jsPDF: { 
-                unit: 'pt', 
-                format: 'letter', 
-                orientation: 'portrait'
-            },
-            pagebreak: {
-                mode: ['avoid-all', 'css', 'legacy'],
-                before: '.preview-document',
-                after: '.preview-document',
-                avoid: ['tr', 'td', '.goal-item'],
-                bottomMargin: 108 // 1.5 inches in points (72 points = 1 inch)
-            }
-        };
-
-        // Generate and save PDF
-        await html2pdf().from(container).set(opt).save();
-
-        // Clean up
-        document.body.removeChild(container);
-    } catch (error) {
-        console.error('Error exporting PDF:', error);
-        alert('Failed to export PDF. Please try again.');
-    } finally {
-        hideLoading();
-    }
-}
-
-// Initialize TensorFlow and Universal Sentence Encoder
-async function initializeTensorflow() {
-    try {
-        console.log('Loading Universal Sentence Encoder...');
-        useModel = await use.load();
-        console.log('Universal Sentence Encoder loaded successfully');
-    } catch (error) {
-        console.error('Error loading Universal Sentence Encoder:', error);
-        useModel = null;
-    }
-}
-
-// Initialize application
-async function initialize() {
-    try {
-        initializeDOMElements();
-        await Promise.all([
-            initializeTensorflow(),
-            loadGoalBank()
-        ]);
-        initializeEventListeners();
-        updatePreview();
-        
-        // Add Generate Summary button handler
-        const generateSummaryButton = document.getElementById('generateSummary');
-        if (generateSummaryButton) {
-            generateSummaryButton.addEventListener('click', async () => {
-                const originalText = generateSummaryButton.textContent;
-                generateSummaryButton.disabled = true;
-                generateSummaryButton.textContent = 'Generating...';
-                
-                try {
-                    await generatePlanSummary();
-                    generateSummaryButton.textContent = originalText;
-                    generateSummaryButton.disabled = false;
-                } catch (error) {
-                    generateSummaryButton.textContent = 'Failed to Generate';
-                    console.error('Failed to generate summary:', error);
-                    setTimeout(() => {
-                        generateSummaryButton.textContent = originalText;
-                        generateSummaryButton.disabled = false;
-                    }, 3000);
-                }
-            });
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intervention Plan Preview</title>
+    <style>
+        @page {
+            margin: 0.5in;
+            size: letter;
         }
-    } catch (error) {
-        console.error('Error initializing application:', error);
-    }
-}
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            line-height: 1.6;
+            color: #000;
+            margin: 0;
+            padding: 0;
+            font-size: 12pt;
+            -webkit-hyphens: auto;
+            -ms-hyphens: auto;
+            -moz-hyphens: auto;
+            hyphens: auto;
+            hyphenate-limit-chars: 6 3 3;
+            hyphenate-limit-lines: 2;
+            hyphenate-limit-last: always;
+            hyphenate-limit-zone: 8%;
+            hyphenate-limit-after: 3;
+            hyphenate-limit-before: 3;
+            word-wrap: break-word;
+            background-color: white;
+        }
+        #plan-container {
+            width: 8.5in;
+            max-width: 100%;
+            margin: 0 auto;
+            background: white;
+            position: relative;
+            box-sizing: border-box;
+            flex-direction: column;
+        }
+        .document-content {
+            display: flex;
+            align-items: flex-start;
+            margin: 0;
+            position: relative;
+        }
+        .banner-image {
+            width: 115px;
+            margin-right: 20px;
+        }
+        .text-content {
+            flex: 1;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.2in;
+            padding: 0.3in 0.5in 0.1in 0.5in;
+            border-bottom: 1px solid #f0f0f0;
 
-// Start the application when the DOM is loaded
-document.addEventListener('DOMContentLoaded', initialize);
+        }
+        .header img {
+            height: 1.5in; /* Increased by 30% */
+            float: right; /* Move to the right */
+        }
+
+        .client-info {
+            width: 98%;
+            margin: 0;
+            background-color: #f5f5f5;
+            padding: 12px;
+            border-radius: 5px;
+        }
+        .client-info p {
+            margin: 0.1in 0;
+            font-size: 11.5pt;
+        }
+        .summary {
+            padding: 0;
+        }
+        h2 {
+            color: #003366;
+            font-size: 14pt;
+            page-break-before: auto;
+            font-weight: 600;
+            margin-top: 0.3in;
+            margin-bottom: 0.2in;
+            border-bottom: 1px solid #003366;
+            padding-bottom: 0.1in;
+        }
+        ul {
+            margin: 0.2in 0;
+            padding-left: 0.25in;
+        }
+        .summary-text {
+            page-break-inside: avoid;
+            margin-top: 0.1in;
+            break-inside: avoid;
+        }
+        .objectives-list {
+            page-break-before: auto;
+            page-break-after: auto;
+            text-align: justify;
+            margin: 0.15in 0;
+        }
+        li {
+            margin-bottom: 0.12in;
+            page-break-inside: avoid;
+            break-inside: avoid;
+            text-align: justify;
+            line-height: 1.4;
+            font-size: 11.5pt;
+            -webkit-hyphens: auto;
+            -ms-hyphens: auto;
+            -moz-hyphens: auto;
+            hyphens: auto;
+        }
+        .summary p {
+            text-align: justify;
+            margin: 0.2in 0;
+            line-height: 1.6;
+            font-size: 12pt;
+        }
+        .implementation-text {
+            page-break-before: auto;
+            page-break-after: auto;
+            text-align: justify;
+            line-height: 1.6;
+            -webkit-hyphens: auto;
+            -ms-hyphens: auto;
+            -moz-hyphens: auto;
+            hyphens: auto;
+        }
+        @media print {
+            .download-btn {
+                display: none !important;
+                visibility: hidden !important;
+            }
+        }
+        .footer {
+            margin-top: 0.8in;
+            text-align: center;
+            font-size: 11pt;
+            line-height: 1.8;
+            border-top: 1px solid #003366;
+            padding: 0.2in 0.5in 0.5in 0.5in;
+            background-color: #f5f5f5;
+        }
+        .footer a {
+            color: #003366;
+            text-decoration: none;
+        }
+        .download-btn {
+            text-align: center;
+            margin-top: 20px;
+            padding-bottom: 20px;
+        }
+        .download-btn button {
+            padding: 10px 20px;
+            background-color: #003366;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+        .avoid-break {
+            page-break-inside: avoid;
+        }
+        .html2pdf__page-break {
+            height: 0;
+            page-break-before: always;
+            margin: 0;
+        }
+        .page-header-container {
+            display: flex;
+        }
+        .page-content {
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+    <div id="plan-container">
+        <!-- Header with logo -->
+        <div class="header">
+            <div></div>
+            <img src="logo.png" alt="IPLC Logo" style="margin-left: auto;">
+            
+        </div>
+
+        <!-- Document content with banner image and text -->
+        <div class="document-content">
+            <!-- Banner image on the left -->
+            <div class="banner-image">
+                <img src="images/Intervention Plan.png" alt="Intervention Plan Banner" style="width: 100%;">
+            </div>
+            
+            <!-- Text content on the right -->
+            <div class="text-content">
+                <div class="client-info">
+                    <p><strong>Name:</strong> ${clientName}</p>
+                    <p><strong>Date of Birth:</strong> ${new Date(dob).toLocaleDateString()}</p>
+                    <p><strong>Age:</strong> ${ageYears || ''} years, ${ageMonths || ''} months</p>
+                    <p><strong>Frequency:</strong> ${frequency} sessions per week</p>
+                    <p><strong>Plan Date:</strong> ${new Date(planDate).toLocaleDateString()}</p>
+                </div>
+                
+                <h2>Intervention Plan Summary</h2>
+                <div class="summary-text" contenteditable="true">${introText}</div>
+                
+                <div>
+                    <h2>Long Term Objectives</h2>
+                    <ul class="objectives-list" contenteditable="true">
+                        ${longTermObjectives.map(obj => `<li>${obj.endsWith('.') ? obj : obj + '.'}</li>`).join('')}
+                    </ul>
+                
+                </div>
+
+                <div>
+                    <h2>Short Term Objectives</h2>
+                    <ul class="objectives-list">
+                        ${selectedGoals.map(goal => {
+                            // Format category name properly
+                            let categoryDisplay = goal.category.charAt(0).toUpperCase() + goal.category.slice(1).toLowerCase();
+                            let goalText = goal.text.charAt(0).toLowerCase() + goal.text.slice(1);
+                            if (!goalText.endsWith('.')) {
+                                goalText += '.';
+                            }
+                            return `<li contenteditable="true">To improve overall ${categoryDisplay}, ${clientName} ${goalText}</li>`;
+                        }).join('')}
+                    </ul>
+                </div>
+                
+                <div>
+                    <h2>Implementation Plan</h2>
+                    <div class="implementation-text" contenteditable="true">${implementationText}</div>
+                </div>
+            </div>
+        </div>
+        <div class="footer">
+            <strong>Innovative Pediatric Learning Center of Miami</strong><br>
+            7780 SW 87th Avenue, Suite 203, Miami, FL 33173<br>
+            <a href="tel:786-622-2353">786-622-2353</a> | 
+            <a href="mailto:info@IPLCmiami.com">info@IPLCmiami.com</a> | 
+            <a href="https://www.IPLCmiami.com">www.IPLCmiami.com</a>
+        </div>
+        <div class="download-btn no-print">
+            <button id="downloadPdfBtn">Download PDF</button>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+            // Function to handle PDF generation
+        document.getElementById('downloadPdfBtn').addEventListener('click', function() {
+            const element = document.getElementById('plan-container');
+            const options = {
+                filename: '${clientName.replace(/[^a-z0-9]/gi, '_')}_intervention_plan.pdf',
+                margin: [0.5, 0.5, 0.5, 0.5],
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2,
+                        ignoreElements: (element) => element.classList.contains('no-print'),
+                    useCORS: true,
+                    letterRendering: true,
+                    scrollY: 0
+                },
+                jsPDF: { 
+                    unit: 'in',
+                    format: 'letter',
+                    orientation: 'portrait',
+                    compress: true,
+                    enableLinks: true
+                },
+                pagebreak: { 
+                    mode: ['css', 'legacy'], 
+                    before: '.page-break', 
+                    after: '.page-break', 
+                    avoid: 'h2',
+                    allowOrphans: true
+                }
+            };
+            
+            // Generate PDF
+            html2pdf().set(options).from(element).save();
+        });
+    </script>
+</body>
+</html>`;
+
+        previewWindow.document.open();
+        previewWindow.document.write(summaryHTML);
+        previewWindow.document.close();
+    }
+
+    // Initialize the app
+    populateDatabase().then(() => {
+        showClientInfo();
+    }).catch(error => {
+        console.error('Error initializing app:', error);
+    });
+}); // Add closing brace and parenthesis for DOMContentLoaded event listener

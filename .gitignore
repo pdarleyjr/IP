@@ -1,41 +1,45 @@
 # Dependencies
 node_modules/
-package-lock.json
+Dexie.js/
+formBuilder/
+html2pdf.js-main/
+idb/
 
-# Environment
+# Environment variables
 .env
 .env.local
-.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# IDE
-.vscode/
-.idea/
-*.sublime-workspace
-*.sublime-project
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Original DOCX files (since we're using the converted JSON)
-Goal Bank/
-Samples/
-
-# Build output
+# Build files
 dist/
 build/
 
-# Installers
-*.exe
-
-# Logs
-*.log
+# Debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
+# Editor directories and files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Intervention plan documents
+interventionplans/
+*.pdf
+*.docx

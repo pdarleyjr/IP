@@ -1,0 +1,378 @@
+/* style.css */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    color: #333333;
+    background-color: #f9f9f9;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #F0F0F0;
+}
+
+.logo-container {
+    margin-bottom: 20px;
+    padding-left: 20px;
+    padding-top: 20px;
+}
+
+.logo {
+    height: 130px;
+    margin-right: 0;
+    max-width: 100%;
+}
+
+.client-info-title {
+    text-align: center;
+}
+
+header h1 {
+    color: #003366;
+    margin: 0;
+    flex-grow: 1;
+}
+
+.client-info {
+    margin-bottom: 30px;
+    background: #F0F0F0;
+    padding: 20px;
+    border-radius: 5px;
+}
+
+.client-info h2 {
+    color: #003366;
+    margin-top: 0;
+}
+
+.client-info label {
+    display: inline-block;
+    width: 120px;
+    margin-bottom: 10px;
+    color: #003366;
+}
+
+.client-info input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 200px;
+}
+
+.category-selection {
+    margin-bottom: 30px;
+}
+
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.category-card {
+    background: #F0F0F0;
+    padding: 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.category-card:hover {
+    background: #0073e6;
+    color: white;
+}
+
+.category-card.selected {
+    background: #003366;
+    color: white;
+}
+
+.goal-selection {
+    margin-bottom: 30px;
+}
+
+.goal-list {
+    list-style: none;
+    padding: 0;
+}
+
+.goal-list li {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px;
+    background: #F0F0F0;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.goal-list li:hover {
+    background: #e0e0e0;
+}
+
+/* Category tabs styling */
+.category-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #003366;
+}
+
+.category-tab {
+    padding: 10px 15px;
+    background: #F0F0F0;
+    border-radius: 5px 5px 0 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid #ccc;
+    border-bottom: none;
+}
+
+.category-tab:hover {
+    background: #e0e0e0;
+}
+
+.category-tab.active {
+    background: #003366;
+    color: white;
+    border-color: #003366;
+}
+
+.goal-content-container {
+    background: #F0F0F0;
+    border-radius: 0 5px 5px 5px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.category-content {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.category-content li {
+    margin-bottom: 8px;
+    padding: 8px;
+}
+
+.goal-list input[type="checkbox"] {
+    margin-top: 4px;
+}
+
+.summary {
+    margin-top: 30px;
+    border: 1px solid #ccc;
+    padding: 20px;
+    background: #F0F0F0;
+    border-radius: 5px;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+button {
+    background: #003366;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background: #0073e6;
+}
+
+button.secondary {
+    background: #F0F0F0;
+    color: #003366;
+    border: 1px solid #003366;
+}
+
+button.secondary:hover {
+    background: #e0e0e0;
+}
+
+/* Preview Window Styles */
+.preview-window {
+    background: white;
+    padding: 0;
+    margin: 0;
+}
+
+#plan-container {
+    min-height: 900px;
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    position: relative;
+}
+
+.document-content {
+    display: flex;
+    margin: 0;
+    align-items: flex-start;
+}
+
+.banner-image {
+    flex: 0 0 150px;
+    margin-right: 20px;
+    margin-top: 20px; /* Align with client info box */
+}
+
+#plan-container .vertical-text {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    background-color: #003366;
+    color: white;
+    text-align: center;
+    padding: 20px 10px;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+#plan-container .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 2px solid #F0F0F0;
+}
+
+#plan-container .client-details {
+    padding: 20px;
+    background: #F0F0F0;
+    margin: 20px;
+    border-radius: 5px;
+}
+
+#plan-container h2 {
+    color: #003366;
+    border-bottom: 2px solid #0073e6;
+    padding-bottom: 5px;
+    margin-top: 20px;
+}
+
+#plan-container .objectives {
+    padding: 0 20px;
+}
+
+#plan-container .objectives ul {
+    padding-left: 20px;
+}
+
+#plan-container .objectives li {
+    margin-bottom: 10px;
+}
+
+#plan-container .footer {
+    background: #003366;
+    color: white;
+    text-align: center;
+    padding: 15px;
+    font-size: 0.9em;
+    margin-top: auto;
+}
+
+#plan-container .footer a {
+    color: white;
+    text-decoration: none;
+}
+
+#plan-container .footer a:hover {
+    text-decoration: underline;
+}
+
+/* PDF-specific styles */
+.pdf-container {
+    font-family: 'Times New Roman', Times, serif;
+    max-width: 8.5in;
+    margin: 1in;
+    color: #000;
+    line-height: 1.5;
+    background-color: white;
+    padding: 0;
+}
+
+.pdf-header {
+    text-align: center;
+    margin-bottom: 0.75in;
+}
+
+.pdf-title {
+    font-size: 16pt;
+    font-weight: bold;
+    margin-bottom: 0.25in;
+    text-transform: uppercase;
+    color: #000;
+}
+
+.client-details-pdf {
+    text-align: left;
+    margin: 0.5in 0;
+    line-height: 1.8;
+    background: none;
+    padding: 0;
+}
+
+.section-heading {
+    font-size: 12pt;
+    font-weight: bold;
+    margin-top: 0.3in;
+    margin-bottom: 0.2in;
+    text-transform: uppercase;
+    color: #000;
+    border: none;
+}
+
+.content-section {
+    margin-bottom: 0.3in;
+    text-align: justify;
+}
+
+.objectives-list-pdf {
+    margin: 0.2in 0.4in;
+    padding-left: 0.3in;
+}
+
+.objectives-list-pdf li {
+    margin-bottom: 0.15in;
+    line-height: 1.4;
+    text-align: justify;
+    background: none;
+    padding: 0;
+}
+
+/* Page break controls */
+.page-break-before {
+    page-break-before: always;
+}
+
+.avoid-break {
+    page-break-inside: avoid;
+}
+
+#plan-container .footer a:hover {
+    text-decoration: underline;
+}
